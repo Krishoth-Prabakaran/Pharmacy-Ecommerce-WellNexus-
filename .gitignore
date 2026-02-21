@@ -1,0 +1,22 @@
+# --------------------
+# Global
+# --------------------
+.DS_Store
+Thumbs.db
+.idea/
+
+# --------------------
+# Backend (Node.js)
+# --------------------
+backend/node_modules/
+backend/.env
+backend/*.log
+
+# --------------------
+# Flutter
+# --------------------
+frontend/.dart_tool/
+frontend/build/
+frontend/.idea/
+frontend/.flutter-plugins-dependencies
+frontend/.metadata
