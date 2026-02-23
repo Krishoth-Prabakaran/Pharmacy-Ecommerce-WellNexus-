@@ -95,7 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         // Fallback icon if logo fails to load
-                        return Icon(
+                        return const Icon(
                           Icons.shield,
                           size: 70,
                           color: Colors.blue,
@@ -274,7 +274,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Role Dropdown
                 DropdownButtonFormField<String>(
-                  value: _selectedRole,
+                  initialValue: _selectedRole,
                   decoration: InputDecoration(
                     labelText: 'Select Role',
                     prefixIcon: const Icon(Icons.work),

@@ -4,10 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   // For Chrome/web
-  //static const String baseUrl = 'http://localhost:5000/api/auth';
+  static const String baseUrl = 'http://localhost:5000/api/auth';
 
   // For Android emulator
-   static const String baseUrl = 'http://10.0.2.2:5000/api/auth';
+   //static const String baseUrl = 'http://10.0.2.2:5000/api/auth';
 
   // For iOS emulator
   // static const String baseUrl = 'http://localhost:5000/api/auth';
