@@ -80,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
                       // Fallback icon if logo fails to load
-                      return Icon(
+                      return const Icon(
                         Icons.shield,
                         size: 80,
                         color: Colors.blue,
