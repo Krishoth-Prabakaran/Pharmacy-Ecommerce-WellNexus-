@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart'; // Removed unused provider import
+// screens/login_screen.dart
+import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key); // Added const and key
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -20,33 +21,39 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      final result = await AuthService().login(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
+      try {
+        final result = await AuthService().login(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
 
-      setState(() => _isLoading = false);
+        if (!mounted) return;
 
-      if (result['success']) {
-        // Removed unused role variable
-        _showSnackBar('Login successful!', Colors.green);
-        
-        if (mounted) { // Added mounted check
+        setState(() => _isLoading = false);
+
+        if (result['success']) {
+          _showSnackBar('Login successful!', Colors.green);
+          
+          // Navigate to dashboard
           Navigator.pushReplacementNamed(context, '/dashboard');
+        } else {
+          _showSnackBar(result['message'], Colors.red);
         }
-      } else {
-        _showSnackBar(result['message'], Colors.red);
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        _showSnackBar('An error occurred: $e', Colors.red);
       }
     }
   }
 
   void _showSnackBar(String message, Color color) {
-    if (!mounted) return; // Added mounted check
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: color,
-        duration: const Duration(seconds: 3), // Added const
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -56,19 +63,18 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0), // Added const
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 30), // Added const
+              const SizedBox(height: 30),
               
-              // ===== YOUR LOGO HERE =====
               Center(
                 child: Container(
                   height: 120,
                   width: 120,
                   alignment: Alignment.center,
-                  margin: const EdgeInsets.only(bottom: 10), // Added const
+                  margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
                     shape: BoxShape.circle,
@@ -79,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 100,
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
-                      // Fallback icon if logo fails to load
                       return const Icon(
                         Icons.shield,
                         size: 80,
@@ -90,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               
-              const Text( // Added const
+              const Text(
                 'WellNexus',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -99,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: Colors.blue,
                 ),
               ),
-              const SizedBox(height: 10), // Added const
+              const SizedBox(height: 10),
               Text(
                 'Your Health Companion',
                 textAlign: TextAlign.center,
@@ -108,20 +113,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: Colors.grey[600],
                 ),
               ),
-              const SizedBox(height: 40), // Added const
+              const SizedBox(height: 40),
 
-              // Form
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Email Field
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
                         labelText: 'Email',
-                        prefixIcon: const Icon(Icons.email), // Added const
+                        prefixIcon: const Icon(Icons.email),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -131,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2), // Added const
+                          borderSide: const BorderSide(color: Colors.blue, width: 2),
                         ),
                       ),
                       validator: (value) {
@@ -144,15 +147,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16), // Added const
+                    const SizedBox(height: 16),
 
-                    // Password Field
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock), // Added const
+                        prefixIcon: const Icon(Icons.lock),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword
@@ -174,35 +176,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2), // Added const
+                          borderSide: const BorderSide(color: Colors.blue, width: 2),
                         ),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your password';
                         }
-                        if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
-                        }
                         return null;
                       },
                     ),
-                    const SizedBox(height: 24), // Added const
+                    const SizedBox(height: 24),
 
-                    // Login Button
                     _isLoading
-                        ? const Center(child: CircularProgressIndicator()) // Added const
+                        ? const Center(child: CircularProgressIndicator())
                         : ElevatedButton(
                             onPressed: _login,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               foregroundColor: Colors.white,
-                              minimumSize: const Size(double.infinity, 50), // Added const
+                              minimumSize: const Size(double.infinity, 50),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: const Text( // Added const
+                            child: const Text(
                               'Login',
                               style: TextStyle(
                                 fontSize: 18,
@@ -213,23 +211,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20), // Added const
+              const SizedBox(height: 20),
 
-              // Register Link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Don't have an account? "), // Added const
+                  const Text("Don't have an account? "),
                   TextButton(
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const RegisterScreen(), // Added const
+                          builder: (context) => const RegisterScreen(),
                         ),
                       );
                     },
-                    child: const Text( // Added const
+                    child: const Text(
                       'Register',
                       style: TextStyle(
                         color: Colors.blue,

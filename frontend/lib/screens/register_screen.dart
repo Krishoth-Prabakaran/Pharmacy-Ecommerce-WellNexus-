@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
+import 'patient_register_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key); // Added key parameter
+  const RegisterScreen({Key? key}) : super(key: key);
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState(); // Fixed return type
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
@@ -38,8 +39,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (result['success']) {
         _showSnackBar('Registration successful!', Colors.green);
-        if (mounted) { // Check if widget is still mounted
-          Navigator.pushReplacementNamed(context, '/dashboard');
+        
+        if (mounted) {
+          if (_selectedRole == 'patient') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PatientRegisterScreen(
+                  userData: result['data'],
+                ),
+              ),
+            );
+          } else {
+            Navigator.pushReplacementNamed(context, '/dashboard');
+          }
         }
       } else {
         _showSnackBar(result['message'], Colors.red);
@@ -48,7 +61,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _showSnackBar(String message, Color color) {
-    if (!mounted) return; // Check if widget is mounted
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -77,7 +90,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 const SizedBox(height: 10),
                 
-                // ===== YOUR LOGO HERE =====
                 Center(
                   child: Container(
                     height: 100,
@@ -89,12 +101,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: Image.asset(
-                      'assets/images/logo.png', // Your actual logo
+                      'assets/images/logo.png',
                       height: 80,
                       width: 80,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
-                        // Fallback icon if logo fails to load
                         return const Icon(
                           Icons.shield,
                           size: 70,
@@ -125,7 +136,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 30),
 
-                // Username Field
                 TextFormField(
                   controller: _usernameController,
                   decoration: InputDecoration(
@@ -155,7 +165,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Email Field
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -186,7 +195,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Password Field
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
@@ -229,7 +237,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Confirm Password Field
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
@@ -272,7 +279,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Role Dropdown
                 DropdownButtonFormField<String>(
                   initialValue: _selectedRole,
                   decoration: InputDecoration(
@@ -295,7 +301,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       value: role,
                       child: Text(
                         role[0].toUpperCase() + role.substring(1),
-                        style: const TextStyle(fontSize: 16),
                       ),
                     );
                   }).toList(),
@@ -307,7 +312,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Register Button
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
@@ -330,7 +334,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                 const SizedBox(height: 16),
 
-                // Login Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -343,7 +346,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             builder: (context) => const LoginScreen(),
                           ),
                         );
-                        Navigator.pushReplacementNamed(context, '/login');
                       },
                       child: const Text(
                         'Login',
