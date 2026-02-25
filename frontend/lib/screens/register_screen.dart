@@ -1,7 +1,9 @@
+// screens/register_screen.dart
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'patient_register_screen.dart';
+import 'pharmacy_register_screen.dart'; // Import pharmacy registration screen
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -41,7 +43,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _showSnackBar('Registration successful!', Colors.green);
         
         if (mounted) {
+          // Role-based navigation
           if (_selectedRole == 'patient') {
+            // Navigate to patient details form
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
@@ -50,7 +54,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
             );
+          } else if (_selectedRole == 'pharmacist') {
+            // Build user data with plain password for pharmacy registration
+            final Map<String, dynamic> responseData = result['data'];
+            
+            // Extract user_id (could be flat or nested)
+            int? userId;
+            if (responseData['user_id'] != null) {
+              userId = responseData['user_id'];
+            } else if (responseData['user'] != null && responseData['user']['user_id'] != null) {
+              userId = responseData['user']['user_id'];
+            }
+
+            final userData = {
+              'username': _usernameController.text.trim(),
+              'email': _emailController.text.trim(),
+              'password': _passwordController.text.trim(), // Plain password needed for pharmacy creation
+              'user_id': userId,
+            };
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PharmacyRegisterScreen(userData: userData),
+              ),
+            );
           } else {
+            // For doctor and other roles, go directly to dashboard
             Navigator.pushReplacementNamed(context, '/dashboard');
           }
         }
@@ -280,7 +310,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
 
                 DropdownButtonFormField<String>(
-                  initialValue: _selectedRole,
+                  value: _selectedRole, // Use value instead of initialValue to allow updates
                   decoration: InputDecoration(
                     labelText: 'Select Role',
                     prefixIcon: const Icon(Icons.work),
