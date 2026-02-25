@@ -34,6 +34,10 @@ class MyApp extends StatelessWidget {
   }
 }
 
+/// AuthWrapper handles the initial routing based on:
+/// 1. User login status (token exists)
+/// 2. User role (patient, doctor, pharmacist)
+/// 3. For patients: checks if they've completed their profile
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -42,6 +46,7 @@ class AuthWrapper extends StatelessWidget {
     return FutureBuilder<bool>(
       future: AuthService.isLoggedIn(),
       builder: (context, snapshot) {
+        // Show loading indicator while checking login status
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(
@@ -50,10 +55,12 @@ class AuthWrapper extends StatelessWidget {
           );
         }
         
+        // User is logged in - check their data and role
         if (snapshot.data == true) {
           return FutureBuilder<Map<String, dynamic>?>(
             future: AuthService.getUserData(),
             builder: (context, userSnapshot) {
+              // Show loading while fetching user data
               if (userSnapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
                   body: Center(
@@ -63,10 +70,16 @@ class AuthWrapper extends StatelessWidget {
               }
               
               final userData = userSnapshot.data;
+              
+              // Handle PATIENT role - check if they have completed profile
               if (userData != null && userData['role'] == 'patient') {
+                final userId = userData['user_id']; // Get user_id from stored data
+                
                 return FutureBuilder<bool>(
-                  future: PatientService().hasPatientDetails(userData['email'] ?? ''),
+                  // FIXED: Pass userId instead of email to match backend
+                  future: PatientService().hasPatientDetails(userId),
                   builder: (context, detailsSnapshot) {
+                    // Show loading while checking patient details
                     if (detailsSnapshot.connectionState == ConnectionState.waiting) {
                       return const Scaffold(
                         body: Center(
@@ -75,6 +88,7 @@ class AuthWrapper extends StatelessWidget {
                       );
                     }
                     
+                    // If patient has details, go to dashboard, otherwise show registration form
                     if (detailsSnapshot.data == true) {
                       return const DashboardScreen();
                     } else {
@@ -84,11 +98,13 @@ class AuthWrapper extends StatelessWidget {
                 );
               }
               
+              // For other roles (doctor, pharmacist) go directly to dashboard
               return const DashboardScreen();
             },
           );
         }
         
+        // User not logged in - show login screen
         return const LoginScreen();
       },
     );

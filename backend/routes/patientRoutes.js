@@ -2,19 +2,22 @@ const express = require("express");
 const router = express.Router();
 const patientController = require("../controllers/patientController");
 
-// Save patient details (POST) - using email to link with users table
+// ==================== PATIENT ROUTES ====================
+
+// POST /api/patients/details - Save patient details
+// Body: { user_id, first_name, last_name, phone, date_of_birth, gender }
 router.post("/details", patientController.savePatientDetails);
 
-// Get patient details by email (GET)
-router.get("/:email", patientController.getPatientDetails);
+// GET /api/patients?email=xxx&user_id=xxx - Get patient details by email or user_id
+router.get("/", patientController.getPatientDetails);
 
-// Get patient by phone (GET)
+// GET /api/patients/phone/:phone - Get patient by phone number
 router.get("/phone/:phone", patientController.getPatientByPhone);
 
-// Update patient details by email (PUT)
-router.put("/:email", patientController.updatePatientDetails);
+// PUT /api/patients/:user_id - Update patient details by user_id
+router.put("/:user_id", patientController.updatePatientDetails);
 
-// Check if patient has details by email (GET)
-router.get("/:email/check", patientController.checkPatientDetails);
+// GET /api/patients/:userId/check - Check if patient has details (FIXED: now uses userId)
+router.get("/:userId/check", patientController.checkPatientDetails);
 
 module.exports = router;

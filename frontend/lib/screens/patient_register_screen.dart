@@ -1,15 +1,17 @@
 // screens/patient_register_screen.dart
 import 'package:flutter/material.dart';
 import '../services/patient_service.dart';
-import '../services/auth_service.dart';
 import 'dashboard_screen.dart';
 
+/// PatientRegisterScreen - Collects additional patient information
+/// This screen appears after registration ONLY for patients who haven't
+/// completed their profile (first_name, last_name, phone, etc.)
 class PatientRegisterScreen extends StatefulWidget {
-  // User data passed from registration screen – contains at least:
-  // - user_id (int)
-  // - username (String)
-  // - email (String)
-  // - token (String)
+  // User data passed from registration screen – contains:
+  // - user_id (int) - Primary key from users table
+  // - username (String) - User's chosen username
+  // - email (String) - User's email (lowercase)
+  // - token (String) - JWT token for authentication
   final Map<String, dynamic> userData;
 
   const PatientRegisterScreen({
@@ -29,8 +31,8 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
   final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  DateTime? _selectedDate;
-  String? _selectedGender;
+  DateTime? _selectedDate; // Selected date of birth
+  String? _selectedGender; // Selected gender from dropdown
   bool _isLoading = false;
 
   final List<String> _genders = ['Male', 'Female', 'Other'];
@@ -38,23 +40,24 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
   @override
   void initState() {
     super.initState();
-    // Debug: log received user data
+    // Debug log to verify received user data
     print('📱 PatientRegisterScreen received user data: ${widget.userData}');
   }
 
   /// Show date picker and set selected date
+  /// Uses showDatePicker with custom theme to match app colors
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 6570)), // ~18 years
+      initialDate: DateTime.now().subtract(const Duration(days: 6570)), // ~18 years ago
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Colors.blue,
-              onPrimary: Colors.white,
+              primary: Colors.blue, // Header color
+              onPrimary: Colors.white, // Header text color
             ),
           ),
           child: child!,
@@ -70,26 +73,31 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
   }
 
   /// Save patient details to backend
+  /// Sends data to /api/patients/details endpoint
+  /// IMPORTANT: Uses user_id to link patient record with users table
   void _savePatientDetails() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      // Extract user_id and email from passed userData
+      // Extract user_id from passed userData (handle both flat and nested structures)
       final userId = widget.userData['user_id'] ?? widget.userData['user']?['user_id'];
       final email = widget.userData['email'] ?? widget.userData['user']?['email'];
 
       // Prepare data for backend
+      // Format date as YYYY-MM-DD for PostgreSQL DATE field
       final patientData = {
-        'user_id': userId,                    // Link to users table (primary)
+        'user_id': userId,                    // PRIMARY LINK: Links to users table
         'email': email,                        // Fallback for backward compatibility
         'first_name': _firstNameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
         'phone': _phoneController.text.trim(),
-        'date_of_birth': _selectedDate?.toIso8601String().split('T').first,
-        'gender': _selectedGender?.toLowerCase(),
+        'date_of_birth': _selectedDate?.toIso8601String().split('T').first, // Format: YYYY-MM-DD
+        'gender': _selectedGender?.toLowerCase(), // Store as lowercase in DB
       };
 
-      // Call patient service
+      print('📤 Sending patient data: $patientData'); // Debug log
+
+      // Call patient service to save details
       final result = await PatientService().savePatientDetails(patientData);
 
       setState(() => _isLoading = false);
@@ -111,7 +119,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
     }
   }
 
-  /// Show snackbar message
+  /// Show snackbar message with custom color
   void _showSnackBar(String message, Color color) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -124,6 +132,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
   }
 
   /// Skip patient details for now (go to dashboard)
+  /// Useful for testing or if user wants to complete later
   void _skipForNow() {
     if (mounted) {
       Navigator.pushReplacement(
@@ -201,12 +210,12 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
 
               const SizedBox(height: 30),
 
-              // Form
+              // Patient Details Form
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
-                    // First Name
+                    // First Name (Required)
                     TextFormField(
                       controller: _firstNameController,
                       decoration: InputDecoration(
@@ -233,7 +242,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Last Name
+                    // Last Name (Required)
                     TextFormField(
                       controller: _lastNameController,
                       decoration: InputDecoration(
@@ -260,7 +269,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Phone Number
+                    // Phone Number (Required) - Must be unique in DB
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
@@ -291,7 +300,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Date of Birth (optional)
+                    // Date of Birth (Optional) - Custom date picker
                     InkWell(
                       onTap: () => _selectDate(context),
                       child: InputDecorator(
@@ -326,7 +335,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Gender dropdown (optional)
+                    // Gender dropdown (Optional)
                     DropdownButtonFormField<String>(
                       decoration: InputDecoration(
                         labelText: 'Gender',

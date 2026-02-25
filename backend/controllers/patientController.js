@@ -7,8 +7,8 @@ const pool = require("../config/db");
 exports.savePatientDetails = async (req, res) => {
   // Extract fields from request body
   const { 
-    user_id,           // Primary linking field (new)
-    email,             // Fallback if user_id not provided
+    user_id,           // PRIMARY: Links to users.user_id (NEW)
+    email,             // FALLBACK: Used if user_id not provided
     first_name, 
     last_name, 
     phone, 
@@ -18,12 +18,22 @@ exports.savePatientDetails = async (req, res) => {
 
   console.log("📝 Saving patient details for user_id:", user_id, "email:", email);
 
-  // Basic validation
+  // Basic validation - required fields
   if (!first_name || !last_name || !phone) {
     console.log("❌ Missing required fields");
     return res.status(400).json({ 
       message: "Please provide first_name, last_name, and phone" 
     });
+  }
+
+  // Validate date format if provided
+  if (date_of_birth) {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD format
+    if (!dateRegex.test(date_of_birth)) {
+      return res.status(400).json({ 
+        message: "Date of birth must be in YYYY-MM-DD format" 
+      });
+    }
   }
 
   // Must have either user_id or email to link to users table
@@ -73,7 +83,7 @@ exports.savePatientDetails = async (req, res) => {
     );
 
     if (existingPatient.rows.length > 0) {
-      // Update existing record
+      // UPDATE existing record
       const result = await pool.query(
         `UPDATE patients 
          SET first_name = $1, last_name = $2, phone = $3, 
@@ -83,13 +93,13 @@ exports.savePatientDetails = async (req, res) => {
         [first_name, last_name, phone, date_of_birth, gender, userId]
       );
 
-      console.log("✅ Patient details updated for user_id:", userId);
+      console.log("✅ Patient details UPDATED for user_id:", userId);
       return res.status(200).json({
         message: "Patient details updated successfully",
         patient: result.rows[0]
       });
     } else {
-      // Insert new patient record
+      // INSERT new patient record
       const result = await pool.query(
         `INSERT INTO patients 
            (user_id, first_name, last_name, phone, email, date_of_birth, gender)
@@ -98,7 +108,7 @@ exports.savePatientDetails = async (req, res) => {
         [userId, first_name, last_name, phone, userEmail, date_of_birth, gender]
       );
 
-      console.log("✅ New patient details saved for user_id:", userId);
+      console.log("✅ New patient details SAVED for user_id:", userId);
       return res.status(201).json({
         message: "Patient details saved successfully",
         patient: result.rows[0]
@@ -109,7 +119,7 @@ exports.savePatientDetails = async (req, res) => {
     console.error("Message:", err.message);
     console.error("Stack:", err.stack);
 
-    // Handle duplicate phone violation
+    // Handle duplicate phone violation (unique constraint)
     if (err.code === '23505' && err.constraint === 'patients_phone_key') {
       return res.status(400).json({ 
         message: "Phone number already registered" 
@@ -214,7 +224,7 @@ exports.updatePatientDetails = async (req, res) => {
       return res.status(404).json({ message: "Patient details not found" });
     }
 
-    // Build dynamic update query
+    // Build dynamic update query based on provided fields
     const updates = [];
     const values = [];
     let paramCounter = 1;
@@ -264,6 +274,7 @@ exports.updatePatientDetails = async (req, res) => {
   } catch (err) {
     console.error("❌ ERROR UPDATING PATIENT DETAILS:", err.message);
 
+    // Handle duplicate phone violation
     if (err.code === '23505' && err.constraint === 'patients_phone_key') {
       return res.status(400).json({ message: "Phone number already registered" });
     }
@@ -276,15 +287,17 @@ exports.updatePatientDetails = async (req, res) => {
 };
 
 // ==================== CHECK IF PATIENT HAS DETAILS ====================
+// FIXED: Now accepts user_id as parameter (was email before)
+// This matches the updated route: /api/patients/:userId/check
 exports.checkPatientDetails = async (req, res) => {
-  const { user_id } = req.params; // Now uses user_id
+  const { userId } = req.params; // CHANGED: from user_id to userId
 
-  console.log("🔍 Checking if patient has details for user_id:", user_id);
+  console.log("🔍 Checking if patient has details for user_id:", userId);
 
   try {
     const result = await pool.query(
       "SELECT EXISTS(SELECT 1 FROM patients WHERE user_id = $1) as has_details",
-      [user_id]
+      [userId] // Using userId parameter
     );
 
     res.status(200).json({
