@@ -1,4 +1,4 @@
-// frontend/lib/screens/verify_email_screen.dart
+// frontend/lib/screens/verify_email_screen.dar
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
