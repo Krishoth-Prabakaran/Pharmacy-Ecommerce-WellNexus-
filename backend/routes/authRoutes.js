@@ -28,14 +28,27 @@ router.post("/login", authController.login);
  */
 router.post("/register", authController.register);
 
+ 
+
 /**
- * @route   GET /api/auth/verify-email
+
+ * @route   POST /api/auth/verify-email
+
  * @desc    Verify user's email using token
+
  * @access  Public
+
  * @query   { token }
+
  * @returns { success, message, token, user } or redirects to frontend
+
  */
-router.get("/verify-email", authController.verifyEmail);
+
+router.post("/verify-email", authController.verifyEmail);
+
+ 
+
+ 
 
 /**
  * @route   POST /api/auth/resend-verification

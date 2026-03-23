@@ -5,21 +5,32 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   // ==================== CONFIGURATION ====================
-  // Use 10.0.2.2 for Android Emulator to connect to your computer's localhost
-  static const String baseUrl = 'http://10.0.2.2:5000/api/auth';
+  // For web development
+  static const String baseUrl = 'http://localhost:5000/api/auth';
   
-  // If you are testing on Web/Chrome, use:
+  // For Android Emulator (uncomment if using emulator)
+  // static const String baseUrl = 'http://10.0.2.2:5000/api/auth';
+  
+  // For iOS Simulator (uncomment if using simulator)
   // static const String baseUrl = 'http://localhost:5000/api/auth';
 
   // ==================== LOGIN ====================
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       print('📡 Login attempt for email: $email');
+      print('🔗 URL: $baseUrl/login');
+      
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({'email': email, 'password': password}),
-      );
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Login response status: ${response.statusCode}');
+      print('📥 Login response body: ${response.body}');
 
       final Map<String, dynamic> data = jsonDecode(response.body);
 
@@ -39,7 +50,13 @@ class AuthService {
       }
     } catch (e) {
       print('❌ Login error: $e');
-      return {'success': false, 'message': 'Network error'};
+      if (e.toString().contains('SocketException')) {
+        return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
+      }
+      if (e.toString().contains('Timeout')) {
+        return {'success': false, 'message': 'Connection timeout. Server is not responding'};
+      }
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 
@@ -48,16 +65,24 @@ class AuthService {
       String username, String email, String password, String role) async {
     try {
       print('📡 Registration attempt for email: $email');
+      print('🔗 URL: $baseUrl/register');
+      
       final response = await http.post(
         Uri.parse('$baseUrl/register'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({
           'username': username,
           'email': email,
           'password': password,
           'role': role,
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Register response status: ${response.statusCode}');
+      print('📥 Register response body: ${response.body}');
 
       final Map<String, dynamic> data = jsonDecode(response.body);
 
@@ -76,52 +101,88 @@ class AuthService {
       }
     } catch (e) {
       print('❌ Registration error: $e');
-      return {'success': false, 'message': 'Network error'};
+      if (e.toString().contains('SocketException')) {
+        return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
+      }
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 
   // ==================== VERIFY OTP ====================
   Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
     try {
-      print('📡 Verifying OTP for: $email');
+      print('📡 Verifying OTP for: $email with code: $otp');
+      print('🔗 URL: $baseUrl/verify-email');
+      
       final response = await http.post(
         Uri.parse('$baseUrl/verify-email'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'otp': otp}),
-      );
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email.toLowerCase(),
+          'otp': otp,
+        }),
+      ).timeout(const Duration(seconds: 10));
 
-      print('📥 Response status: ${response.statusCode}');
-      print('📥 Response body: ${response.body}');
+      print('📥 Verify OTP response status: ${response.statusCode}');
+      print('📥 Verify OTP response body: ${response.body}');
 
       final Map<String, dynamic> data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
         await _storeUserData(data);
-        return {'success': true, 'user': data['user']};
+        return {
+          'success': true, 
+          'user': data['user'],
+          'token': data['token']
+        };
       } else {
         return {
           'success': false,
-          'message': data['message'] ?? 'Verification failed',
+          'message': data['message'] ?? 'Invalid or expired OTP',
         };
       }
     } catch (e) {
       print('❌ Verification error: $e');
-      return {'success': false, 'message': 'Network error'};
+      if (e.toString().contains('SocketException')) {
+        return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
+      }
+      if (e.toString().contains('Timeout')) {
+        return {'success': false, 'message': 'Connection timeout. Server is not responding'};
+      }
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 
   // ==================== RESEND OTP ====================
   Future<Map<String, dynamic>> resendVerificationEmail(String email) async {
     try {
+      print('📡 Resending verification email to: $email');
+      print('🔗 URL: $baseUrl/resend-verification');
+      
       final response = await http.post(
         Uri.parse('$baseUrl/resend-verification'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      );
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'email': email.toLowerCase()}),
+      ).timeout(const Duration(seconds: 10));
+      
+      print('📥 Resend response status: ${response.statusCode}');
+      print('📥 Resend response body: ${response.body}');
+      
       final Map<String, dynamic> data = jsonDecode(response.body);
-      return {'success': response.statusCode == 200, 'message': data['message']};
+      return {
+        'success': response.statusCode == 200, 
+        'message': data['message'],
+        'email_preview': data['email_preview']
+      };
     } catch (e) {
-      return {'success': false, 'message': 'Network error'};
+      print('❌ Resend error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 
@@ -130,8 +191,16 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     
     final userData = data['user'] ?? data;
+    final token = data['token'] ?? '';
     
-    await prefs.setString('token', data['token'] ?? '');
+    print('💾 Storing user data:');
+    print('   Token: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+    print('   User ID: ${userData['user_id']}');
+    print('   Username: ${userData['username']}');
+    print('   Email: ${userData['email']}');
+    print('   Role: ${userData['role']}');
+    
+    await prefs.setString('token', token);
     await prefs.setString('role', userData['role'] ?? '');
     await prefs.setInt('user_id', userData['user_id'] ?? 0);
     await prefs.setString('username', userData['username'] ?? '');

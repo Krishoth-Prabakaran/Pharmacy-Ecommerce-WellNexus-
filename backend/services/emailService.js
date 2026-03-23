@@ -48,10 +48,16 @@ exports.sendVerificationEmail = async (to, otp, username) => {
   };
 
   try {
+    // Verify transporter before sending
+    await transporter.verify();
+    console.log("✅ Email transporter verified");
+    
     const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully! Message ID: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('❌ Email error:', error);
+    console.error('Error details:', error.message);
     return { success: false, error: error.message };
   }
 };
@@ -61,12 +67,22 @@ exports.sendWelcomeEmail = async (to, username) => {
     from: '"WellNexus" <wellnexus10@gmail.com>',
     to: to,
     subject: 'Welcome to WellNexus! 🎉',
-    html: `<h2>Welcome, ${username}!</h2><p>Your email has been verified successfully.</p>`
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+        <h2>Welcome, ${username}!</h2>
+        <p>Your email has been verified successfully.</p>
+        <p>You can now log in to your account and start using WellNexus.</p>
+        <br>
+        <p>Best regards,<br>WellNexus Team</p>
+      </div>
+    `
   };
   try {
     await transporter.sendMail(mailOptions);
+    console.log(`✅ Welcome email sent to: ${to}`);
     return { success: true };
   } catch (error) {
+    console.error('❌ Welcome email error:', error);
     return { success: false, error: error.message };
   }
 };
