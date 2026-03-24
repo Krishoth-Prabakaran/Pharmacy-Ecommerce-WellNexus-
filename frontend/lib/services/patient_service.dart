@@ -6,10 +6,14 @@ import 'auth_service.dart';
 
 class PatientService {
   // ==================== CONFIGURATION ====================
-  static const String baseUrl = 'http://localhost:5000/api/patients';
-  // For Android emulator: 'http://10.0.2.2:5000/api/patients'
-  // For iOS emulator: 'http://localhost:5000/api/patients'
-  // For physical device: 'http://192.168.x.x:5000/api/patients'
+  // For Chrome/web:
+  static const String baseUrl = 'http://localhost:5000/api/auth';
+  // For Android emulator:
+  // static const String baseUrl = 'http://10.0.2.2:5000/api/auth';
+  // For iOS emulator:
+  // static const String baseUrl = 'http://localhost:5000/api/auth';
+  // For physical device (use your computer's IP):
+  // static const String baseUrl = 'http://192.168.x.x:5000/api/auth';
 
   // ==================== SAVE PATIENT DETAILS ====================
   /// Saves patient details to the database

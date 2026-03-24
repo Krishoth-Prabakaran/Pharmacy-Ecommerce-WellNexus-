@@ -310,7 +310,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
 
                 DropdownButtonFormField<String>(
-                  value: _selectedRole, // Use value instead of initialValue to allow updates
+                  initialValue: _selectedRole, // Use value instead of initialValue to allow updates
                   decoration: InputDecoration(
                     labelText: 'Select Role',
                     prefixIcon: const Icon(Icons.work),

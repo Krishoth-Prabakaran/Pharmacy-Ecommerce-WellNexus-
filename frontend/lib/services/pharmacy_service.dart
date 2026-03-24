@@ -5,13 +5,14 @@ import 'auth_service.dart';
 
 class PharmacyService {
   // ==================== CONFIGURATION ====================
-  static const String baseUrl = 'http://localhost:5000/api/pharmacies';
+  // For Chrome/web:
+  static const String baseUrl = 'http://localhost:5000/api/auth';
   // For Android emulator:
-  // static const String baseUrl = 'http://10.0.2.2:5000/api/pharmacies';
+  // static const String baseUrl = 'http://10.0.2.2:5000/api/auth';
   // For iOS emulator:
-  // static const String baseUrl = 'http://localhost:5000/api/pharmacies';
+  // static const String baseUrl = 'http://localhost:5000/api/auth';
   // For physical device (use your computer's IP):
-  // static const String baseUrl = 'http://192.168.x.x:5000/api/pharmacies';
+  // static const String baseUrl = 'http://192.168.x.x:5000/api/auth';
 
   // ==================== REGISTER PHARMACY ====================
   /// Registers a new pharmacy with all required fields
