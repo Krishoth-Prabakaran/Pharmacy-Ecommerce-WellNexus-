@@ -1,3 +1,4 @@
+// backend/routes/patientRoutes.js
 const express = require("express");
 const router = express.Router();
 const patientController = require("../controllers/patientController");
@@ -8,6 +9,15 @@ const patientController = require("../controllers/patientController");
 // Body: { user_id, first_name, last_name, phone, date_of_birth, gender }
 router.post("/details", patientController.savePatientDetails);
 
+// GET /api/patients/dashboard/:userId - Get complete dashboard data
+router.get("/dashboard/:userId", patientController.getPatientDashboard);
+
+// GET /api/patients/profile/:userId - Get patient profile
+router.get("/profile/:userId", patientController.getPatientDetails);
+
+// PUT /api/patients/profile/:userId - Update patient profile
+router.put("/profile/:userId", patientController.updatePatientProfile);
+
 // GET /api/patients?email=xxx&user_id=xxx - Get patient details by email or user_id
 router.get("/", patientController.getPatientDetails);
 
@@ -17,7 +27,7 @@ router.get("/phone/:phone", patientController.getPatientByPhone);
 // PUT /api/patients/:user_id - Update patient details by user_id
 router.put("/:user_id", patientController.updatePatientDetails);
 
-// GET /api/patients/:userId/check - Check if patient has details (FIXED: now uses userId)
+// GET /api/patients/:userId/check - Check if patient has details
 router.get("/:userId/check", patientController.checkPatientDetails);
 
 module.exports = router;

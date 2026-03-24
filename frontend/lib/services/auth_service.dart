@@ -1,54 +1,62 @@
-// services/auth_service.dart
+// frontend/lib/services/auth_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   // ==================== CONFIGURATION ====================
-  // For Chrome/web:
+  // For web development
   static const String baseUrl = 'http://localhost:5000/api/auth';
-  // For Android emulator:
+  
+  // For Android Emulator (uncomment if using emulator)
   // static const String baseUrl = 'http://10.0.2.2:5000/api/auth';
-  // For iOS emulator:
+  
+  // For iOS Simulator (uncomment if using simulator)
   // static const String baseUrl = 'http://localhost:5000/api/auth';
-  // For physical device (use your computer's IP):
-  // static const String baseUrl = 'http://192.168.x.x:5000/api/auth';
 
   // ==================== LOGIN ====================
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       print('📡 Login attempt for email: $email');
-
+      print('🔗 URL: $baseUrl/login');
+      
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({'email': email, 'password': password}),
-      );
+      ).timeout(const Duration(seconds: 10));
 
-      print('📥 Response status: ${response.statusCode}');
-      print('📥 Response body: ${response.body}');
+      print('📥 Login response status: ${response.statusCode}');
+      print('📥 Login response body: ${response.body}');
 
-      // Parse JSON safely
       final Map<String, dynamic> data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        // Validate required fields (your backend sends flat structure)
-        if (data['token'] == null) {
-          return {'success': false, 'message': 'Server response missing token'};
-        }
-
-        // Store user data
         await _storeUserData(data);
         return {'success': true, 'data': data};
       } else {
-        return {
-          'success': false,
-          'message': data['message'] ?? 'Login failed (${response.statusCode})',
-        };
+        if (data['needs_verification'] == true) {
+          return {
+            'success': false,
+            'needs_verification': true,
+            'email': data['email'],
+            'message': data['message'] ?? 'Please verify your email first',
+          };
+        }
+        return {'success': false, 'message': data['message'] ?? 'Login failed'};
       }
     } catch (e) {
       print('❌ Login error: $e');
-      return {'success': false, 'message': 'Network error. Check backend connection.'};
+      if (e.toString().contains('SocketException')) {
+        return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
+      }
+      if (e.toString().contains('Timeout')) {
+        return {'success': false, 'message': 'Connection timeout. Server is not responding'};
+      }
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 
@@ -57,110 +65,164 @@ class AuthService {
       String username, String email, String password, String role) async {
     try {
       print('📡 Registration attempt for email: $email');
-
+      print('🔗 URL: $baseUrl/register');
+      
       final response = await http.post(
         Uri.parse('$baseUrl/register'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({
           'username': username,
           'email': email,
           'password': password,
           'role': role,
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
 
-      print('📥 Response status: ${response.statusCode}');
-      print('📥 Response body: ${response.body}');
+      print('📥 Register response status: ${response.statusCode}');
+      print('📥 Register response body: ${response.body}');
 
       final Map<String, dynamic> data = jsonDecode(response.body);
 
-      if (response.statusCode == 201) {
-        if (data['token'] == null) {
-          return {'success': false, 'message': 'Server response missing token'};
-        }
-
-        await _storeUserData(data);
-        return {'success': true, 'data': data};
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'OTP sent successfully',
+          'email': email,
+          'username': username,
+        };
       } else {
         return {
           'success': false,
-          'message': data['message'] ?? 'Registration failed (${response.statusCode})',
+          'message': data['message'] ?? 'Registration failed',
         };
       }
     } catch (e) {
       print('❌ Registration error: $e');
-      return {'success': false, 'message': 'Network error. Check backend connection.'};
+      if (e.toString().contains('SocketException')) {
+        return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
+      }
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 
-  // ==================== STORE USER DATA LOCALLY ====================
+  // ==================== VERIFY OTP ====================
+  Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
+    try {
+      print('📡 Verifying OTP for: $email with code: $otp');
+      print('🔗 URL: $baseUrl/verify-email');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/verify-email'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email.toLowerCase(),
+          'otp': otp,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Verify OTP response status: ${response.statusCode}');
+      print('📥 Verify OTP response body: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        await _storeUserData(data);
+        return {
+          'success': true, 
+          'user': data['user'],
+          'token': data['token']
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Invalid or expired OTP',
+        };
+      }
+    } catch (e) {
+      print('❌ Verification error: $e');
+      if (e.toString().contains('SocketException')) {
+        return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
+      }
+      if (e.toString().contains('Timeout')) {
+        return {'success': false, 'message': 'Connection timeout. Server is not responding'};
+      }
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // ==================== RESEND OTP ====================
+  Future<Map<String, dynamic>> resendVerificationEmail(String email) async {
+    try {
+      print('📡 Resending verification email to: $email');
+      print('🔗 URL: $baseUrl/resend-verification');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/resend-verification'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'email': email.toLowerCase()}),
+      ).timeout(const Duration(seconds: 10));
+      
+      print('📥 Resend response status: ${response.statusCode}');
+      print('📥 Resend response body: ${response.body}');
+      
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200, 
+        'message': data['message'],
+        'email_preview': data['email_preview']
+      };
+    } catch (e) {
+      print('❌ Resend error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // ==================== STORE USER DATA ====================
   Future<void> _storeUserData(Map<String, dynamic> data) async {
     final prefs = await SharedPreferences.getInstance();
-
-    // Extract values safely – handle both flat and nested structures
-    String token = data['token']?.toString() ?? '';
-
-    // Default empty values
-    String role = '';
-    int userId = 0;
-    String username = '';
-    String email = '';
-
-    // Check if response has nested 'user' (register endpoint) or flat (login endpoint)
-    if (data['user'] != null && data['user'] is Map) {
-      // Register response structure: { token, user: { ... } }
-      final user = data['user'] as Map;
-      role = user['role']?.toString() ?? '';
-      userId = user['user_id'] ?? 0;
-      username = user['username']?.toString() ?? '';
-      email = user['email']?.toString() ?? '';
-    } else {
-      // Login response structure: { token, role, user_id, username, email }
-      role = data['role']?.toString() ?? '';
-      userId = data['user_id'] ?? 0;
-      username = data['username']?.toString() ?? '';
-      email = data['email']?.toString() ?? '';
-    }
-
-    // Store with fallback defaults to avoid null errors later
+    
+    final userData = data['user'] ?? data;
+    final token = data['token'] ?? '';
+    
+    print('💾 Storing user data:');
+    print('   Token: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+    print('   User ID: ${userData['user_id']}');
+    print('   Username: ${userData['username']}');
+    print('   Email: ${userData['email']}');
+    print('   Role: ${userData['role']}');
+    
     await prefs.setString('token', token);
-    await prefs.setString('role', role.isNotEmpty ? role : 'unknown');
-    await prefs.setInt('user_id', userId);
-    await prefs.setString('username', username.isNotEmpty ? username : 'User');
-    await prefs.setString('email', email.isNotEmpty ? email : '');
-
-    print('✅ User data stored:');
-    print('   Role: $role');
-    print('   User ID: $userId');
-    print('   Username: $username');
-    print('   Email: $email');
+    await prefs.setString('role', userData['role'] ?? '');
+    await prefs.setInt('user_id', userData['user_id'] ?? 0);
+    await prefs.setString('username', userData['username'] ?? '');
+    await prefs.setString('email', userData['email'] ?? '');
+    await prefs.setBool('email_verified', true);
   }
 
-  // ==================== CHECK LOGIN STATUS ====================
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     return token != null && token.isNotEmpty;
   }
 
-  // ==================== GET TOKEN ====================
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('token');
   }
 
-  // ==================== GET USER ROLE ====================
-  static Future<String?> getUserRole() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('role');
-  }
-
-  // ==================== GET COMPLETE USER DATA ====================
   static Future<Map<String, dynamic>?> getUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
-    if (token == null || token.isEmpty) return null;
-
+    if (token == null) return null;
     return {
       'token': token,
       'role': prefs.getString('role') ?? '',
@@ -170,10 +232,8 @@ class AuthService {
     };
   }
 
-  // ==================== LOGOUT ====================
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    print('👋 User logged out');
   }
 }

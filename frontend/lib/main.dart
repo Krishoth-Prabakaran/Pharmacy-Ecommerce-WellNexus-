@@ -3,6 +3,7 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/patient_register_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/verify_email_screen.dart';
 import 'services/auth_service.dart';
 import 'services/patient_service.dart';
 
@@ -29,15 +30,17 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/dashboard': (context) => const DashboardScreen(),
+        '/verify-email': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+          return VerifyEmailScreen(
+            userData: args ?? {'email': '', 'username': ''},
+          );
+        },
       },
     );
   }
 }
 
-/// AuthWrapper handles the initial routing based on:
-/// 1. User login status (token exists)
-/// 2. User role (patient, doctor, pharmacist)
-/// 3. For patients: checks if they've completed their profile
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -46,49 +49,33 @@ class AuthWrapper extends StatelessWidget {
     return FutureBuilder<bool>(
       future: AuthService.isLoggedIn(),
       builder: (context, snapshot) {
-        // Show loading indicator while checking login status
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
-        
-        // User is logged in - check their data and role
+
         if (snapshot.data == true) {
           return FutureBuilder<Map<String, dynamic>?>(
             future: AuthService.getUserData(),
             builder: (context, userSnapshot) {
-              // Show loading while fetching user data
               if (userSnapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
-                  body: Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  body: Center(child: CircularProgressIndicator()),
                 );
               }
-              
+
               final userData = userSnapshot.data;
-              
-              // Handle PATIENT role - check if they have completed profile
               if (userData != null && userData['role'] == 'patient') {
-                final userId = userData['user_id']; // Get user_id from stored data
-                
                 return FutureBuilder<bool>(
-                  // FIXED: Pass userId instead of email to match backend
-                  future: PatientService().hasPatientDetails(userId),
+                  future: PatientService().hasPatientDetails(userData['user_id'] ?? 0),
                   builder: (context, detailsSnapshot) {
-                    // Show loading while checking patient details
                     if (detailsSnapshot.connectionState == ConnectionState.waiting) {
                       return const Scaffold(
-                        body: Center(
-                          child: CircularProgressIndicator(),
-                        ),
+                        body: Center(child: CircularProgressIndicator()),
                       );
                     }
-                    
-                    // If patient has details, go to dashboard, otherwise show registration form
+
                     if (detailsSnapshot.data == true) {
                       return const DashboardScreen();
                     } else {
@@ -97,14 +84,13 @@ class AuthWrapper extends StatelessWidget {
                   },
                 );
               }
-              
-              // For other roles (doctor, pharmacist) go directly to dashboard
+
+              // For doctor, pharmacist, or other roles
               return const DashboardScreen();
             },
           );
         }
-        
-        // User not logged in - show login screen
+
         return const LoginScreen();
       },
     );
