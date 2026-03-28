@@ -10,12 +10,30 @@ const doctorRoutes = require("./routes/doctorRoutes");
 
 const app = express();
 
-// Enhanced CORS configuration
+// Enhanced CORS configuration for Flutter web and local development
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:5000',
+];
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5000', 'http://127.0.0.1:5000'],
+  origin: (origin, callback) => {
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('http://127.0.0.1:')
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS policy does not allow access from origin ${origin}`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json());

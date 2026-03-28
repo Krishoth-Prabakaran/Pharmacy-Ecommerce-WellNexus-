@@ -48,10 +48,6 @@ exports.sendVerificationEmail = async (to, otp, username) => {
   };
 
   try {
-    // Verify transporter before sending
-    await transporter.verify();
-    console.log("✅ Email transporter verified");
-    
     const info = await transporter.sendMail(mailOptions);
     console.log(`✅ Email sent successfully! Message ID: ${info.messageId}`);
     return { success: true, messageId: info.messageId };

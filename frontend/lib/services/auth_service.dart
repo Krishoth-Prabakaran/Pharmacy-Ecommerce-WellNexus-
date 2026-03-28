@@ -79,7 +79,7 @@ class AuthService {
           'password': password,
           'role': role,
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 20));
 
       print('📥 Register response status: ${response.statusCode}');
       print('📥 Register response body: ${response.body}');
