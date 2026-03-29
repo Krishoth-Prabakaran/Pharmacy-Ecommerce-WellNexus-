@@ -1,24 +1,41 @@
 const pool = require("../config/db");
 
 const PharmacyModel = {
-  // Create new pharmacy with transaction
+  // Create new pharmacy with transaction. If userData contains user_id, use the existing verified user.
   async create(pharmacyData, userData) {
     const client = await pool.connect();
-    
+
     try {
       await client.query('BEGIN');
-      
-      // Insert into users table
-      const userResult = await client.query(
-        `INSERT INTO users (username, email, password_hash, role, created_at)
-         VALUES ($1, $2, $3, $4, NOW())
-         RETURNING user_id, username, email, role`,
-        [userData.username, userData.email.toLowerCase(), userData.password_hash, 'pharmacy']
-      );
-      
-      const userId = userResult.rows[0].user_id;
-      
-      // Insert into pharmacies table
+
+      let userId;
+      let userRecord;
+
+      if (userData.user_id) {
+        userId = userData.user_id;
+        userRecord = {
+          user_id: userData.user_id,
+          username: userData.username,
+          email: userData.email,
+          role: userData.role
+        };
+      } else {
+        const userResult = await client.query(
+          `INSERT INTO users (username, email, password_hash, role, created_at)
+           VALUES ($1, $2, $3, $4, NOW())
+           RETURNING user_id, username, email, role`,
+          [
+            userData.username,
+            userData.email.toLowerCase(),
+            userData.password_hash,
+            'pharmacist'
+          ]
+        );
+
+        userId = userResult.rows[0].user_id;
+        userRecord = userResult.rows[0];
+      }
+
       const pharmacyResult = await client.query(
         `INSERT INTO pharmacies (
           pharmacy_name, address, phone, latitude, longitude, 
@@ -31,23 +48,24 @@ const PharmacyModel = {
           pharmacyData.pharmacy_name,
           pharmacyData.address,
           pharmacyData.phone,
-          pharmacyData.latitude || null,
-          pharmacyData.longitude || null,
-          pharmacyData.open_time || null,
-          pharmacyData.close_time || null,
+          pharmacyData.latitude ?? null,
+          pharmacyData.longitude ?? null,
+          pharmacyData.open_time ?? null,
+          pharmacyData.close_time ?? null,
           userId
         ]
       );
-      
+
       await client.query('COMMIT');
-      
+
       return {
         ...pharmacyResult.rows[0],
-        email: userResult.rows[0].email,
-        username: userResult.rows[0].username,
-        role: userResult.rows[0].role
+        email: userRecord.email,
+        username: userRecord.username,
+        role: userRecord.role,
+        user_id: userId
       };
-      
+
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;

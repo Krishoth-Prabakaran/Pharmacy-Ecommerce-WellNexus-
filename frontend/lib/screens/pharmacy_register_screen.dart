@@ -89,7 +89,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
         'close_time': _formatTimeOfDay(_closeTime),
         'username': widget.userData['username'],
         'email': widget.userData['email'],
-        'password': widget.userData['password'],
+        'user_id': widget.userData['user_id'],
       };
 
       final result = await PharmacyService().registerPharmacy(pharmacyData);

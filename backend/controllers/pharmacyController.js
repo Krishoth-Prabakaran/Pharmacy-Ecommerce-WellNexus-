@@ -1,4 +1,5 @@
 const bcrypt = require("bcrypt");
+const pool = require("../config/db");
 const PharmacyModel = require("../models/pharmacyModel");
 
 // ==================== REGISTER PHARMACY ====================
@@ -19,31 +20,45 @@ exports.registerPharmacy = async (req, res) => {
   console.log("Registering pharmacy:", pharmacy_name);
 
   // Basic validation
-  if (!pharmacy_name || !address || !phone || !email || !password || !username) {
+  if (!pharmacy_name || !address || !phone || !email || !username) {
     console.log("Missing required fields");
     return res.status(400).json({
       success: false,
-      message: "Please provide pharmacy_name, address, phone, email, password, and username"
+      message: "Please provide pharmacy_name, address, phone, email, and username"
     });
   }
 
   try {
-    // Check if email already exists
-    const emailExists = await PharmacyModel.emailExists(email);
-    if (emailExists) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already registered"
-      });
+    let existingUser = null;
+
+    if (req.body.user_id) {
+      const userResult = await pool.query(
+        'SELECT user_id, username, email, role, email_verified FROM users WHERE user_id = $1',
+        [req.body.user_id]
+      );
+      existingUser = userResult.rows[0];
+    } else if (email) {
+      const userResult = await pool.query(
+        'SELECT user_id, username, email, role, email_verified FROM users WHERE email = $1',
+        [email.toLowerCase()]
+      );
+      existingUser = userResult.rows[0];
     }
 
-    // Check if username already exists
-    const usernameExists = await PharmacyModel.usernameExists(username);
-    if (usernameExists) {
-      return res.status(400).json({
-        success: false,
-        message: "Username already taken"
-      });
+    if (existingUser) {
+      if (existingUser.role !== 'pharmacist') {
+        return res.status(400).json({
+          success: false,
+          message: 'Existing account is not a pharmacist account'
+        });
+      }
+
+      if (!existingUser.email_verified) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please verify your email before registering pharmacy details'
+        });
+      }
     }
 
     // Check if phone already exists
@@ -51,15 +66,10 @@ exports.registerPharmacy = async (req, res) => {
     if (phoneExists) {
       return res.status(400).json({
         success: false,
-        message: "Phone number already registered"
+        message: 'Phone number already registered'
       });
     }
 
-    // Hash password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    // Create pharmacy
     const pharmacyData = {
       pharmacy_name,
       address,
@@ -70,13 +80,50 @@ exports.registerPharmacy = async (req, res) => {
       close_time
     };
 
-    const userData = {
-      username,
-      email,
-      password_hash: hashedPassword
-    };
+    let newPharmacy;
+    if (existingUser) {
+      const userData = {
+        user_id: existingUser.user_id,
+        username: existingUser.username,
+        email: existingUser.email,
+        role: existingUser.role
+      };
+      newPharmacy = await PharmacyModel.create(pharmacyData, userData);
+    } else {
+      if (!password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password is required for new account creation'
+        });
+      }
 
-    const newPharmacy = await PharmacyModel.create(pharmacyData, userData);
+      const emailExists = await PharmacyModel.emailExists(email);
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already registered'
+        });
+      }
+
+      const usernameExists = await PharmacyModel.usernameExists(username);
+      if (usernameExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username already taken'
+        });
+      }
+
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      const userData = {
+        username,
+        email,
+        password_hash: hashedPassword,
+        role: 'pharmacist'
+      };
+      newPharmacy = await PharmacyModel.create(pharmacyData, userData);
+    }
 
     console.log("Pharmacy registered successfully:", pharmacy_name);
     res.status(201).json({
