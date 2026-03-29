@@ -36,7 +36,7 @@ void _login() async {
 
       if (result['success']) {
         _showSnackBar('Login successful!', Colors.green);
-        Navigator.pushReplacementNamed(context, '/dashboard');
+        Navigator.pushReplacementNamed(context, '/');
       } else {
         // Check if error is due to unverified email
         if (result['needs_verification'] == true) {

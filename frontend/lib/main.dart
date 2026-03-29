@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/patient_register_screen.dart';
+import 'screens/pharmacy_register_screen.dart';
+import 'screens/pharmacy_dashboard_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/verify_email_screen.dart';
 import 'services/auth_service.dart';
 import 'services/patient_service.dart';
+import 'services/pharmacy_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -85,7 +88,26 @@ class AuthWrapper extends StatelessWidget {
                 );
               }
 
-              // For doctor, pharmacist, or other roles
+              if (userData != null && userData['role'] == 'pharmacist') {
+                return FutureBuilder<Map<String, dynamic>>(
+                  future: PharmacyService().getPharmacyByEmail(userData['email']),
+                  builder: (context, pharmacySnapshot) {
+                    if (pharmacySnapshot.connectionState == ConnectionState.waiting) {
+                      return const Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    if (pharmacySnapshot.hasData && pharmacySnapshot.data?['success'] == true) {
+                      return PharmacyDashboardScreen(pharmacy: pharmacySnapshot.data!['pharmacy']);
+                    }
+
+                    return PharmacyRegisterScreen(userData: userData);
+                  },
+                );
+              }
+
+              // For doctor, admin, or other roles
               return const DashboardScreen();
             },
           );

@@ -7,6 +7,7 @@ const authRoutes = require("./routes/authRoutes");
 const patientRoutes = require("./routes/patientRoutes");
 const pharmacyRoutes = require("./routes/pharmacyRoutes");
 const doctorRoutes = require("./routes/doctorRoutes");
+const pharmacyInventoryRoutes = require("./routes/pharmacyInventoryRoutes");
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use((req, res, next) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/patients", patientRoutes); 
 app.use("/api/pharmacies", pharmacyRoutes);
+app.use("/api/inventory", pharmacyInventoryRoutes);
 app.use("/api/doctors", doctorRoutes);
 
 // Test route
