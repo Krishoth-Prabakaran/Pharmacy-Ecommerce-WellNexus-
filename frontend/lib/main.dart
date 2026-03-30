@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/patient_dashboard_screen.dart';
 import 'screens/patient_register_screen.dart';
 import 'screens/pharmacy_register_screen.dart';
 import 'screens/pharmacy_dashboard_screen.dart';
@@ -80,7 +81,7 @@ class AuthWrapper extends StatelessWidget {
                     }
 
                     if (detailsSnapshot.data == true) {
-                      return const DashboardScreen();
+                      return PatientDashboardScreen(userData: userData);
                     } else {
                       return PatientRegisterScreen(userData: userData);
                     }

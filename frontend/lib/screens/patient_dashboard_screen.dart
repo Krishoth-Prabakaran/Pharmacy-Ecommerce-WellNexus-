@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/patient_service.dart';
 import '../services/auth_service.dart';
-import '../models/patient_dashboard_data.dart';
 import 'edit_profile_screen.dart';
 
 /// Patient Dashboard Screen
@@ -28,16 +27,43 @@ class PatientDashboardScreen extends StatefulWidget {
 class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
   late Future<PatientDashboardData> _dashboardFuture;
   int _selectedIndex = 0; // 0: Dashboard, 1: Profile, 2: Settings
+  List<Map<String, dynamic>> _availableStock = [];
+  String _stockSearchQuery = '';
+  bool _isLoadingStock = true;
+  String? _stockErrorMessage;
 
   @override
   void initState() {
     super.initState();
     _loadDashboardData();
+    _loadAvailableStock();
   }
 
   void _loadDashboardData() {
     final userId = widget.userData['user_id'] ?? widget.userData['id'];
     _dashboardFuture = PatientService().getDashboardData(userId);
+  }
+
+  Future<void> _loadAvailableStock() async {
+    setState(() {
+      _isLoadingStock = true;
+      _stockErrorMessage = null;
+    });
+
+    final response = await PatientService().getAvailablePharmacyStock();
+    if (response['success'] == true) {
+      setState(() {
+        _availableStock = List<Map<String, dynamic>>.from(response['stock'] ?? []);
+      });
+    } else {
+      setState(() {
+        _stockErrorMessage = response['message'] ?? 'Unable to load available medicines.';
+      });
+    }
+
+    setState(() {
+      _isLoadingStock = false;
+    });
   }
 
   @override
@@ -57,6 +83,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
             onPressed: () {
               setState(() {
                 _loadDashboardData();
+                _loadAvailableStock();
               });
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -217,12 +244,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => EditProfileScreen(
-                      userData: widget.userData,
-                      onProfileUpdated: () {
-                        _loadDashboardData();
-                      },
-                    ),
+                    builder: (context) => const EditProfileScreen(),
                   ),
                 );
               },
@@ -272,6 +294,10 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
 
           // Stats Overview
           _buildStatsOverview(data.stats),
+          const SizedBox(height: 24),
+
+          // Available pharmacy stock
+          _buildAvailablePharmacyStockSection(),
           const SizedBox(height: 24),
 
           // Recent Appointments
@@ -469,6 +495,26 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
     );
   }
 
+  Widget _buildSearchBar({required String hint, required ValueChanged<String> onChanged}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14.0),
+      child: TextField(
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.search),
+          hintText: hint,
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        ),
+      ),
+    );
+  }
+
   /// Build stats overview section
   Widget _buildStatsOverview(PatientStats stats) {
     return Container(
@@ -504,6 +550,137 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
             Icons.medication,
             Colors.green,
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvailablePharmacyStockSection() {
+    final filteredStock = _availableStock.where((item) {
+      final query = _stockSearchQuery.toLowerCase();
+      final medicineName = item['medicine_name']?.toString().toLowerCase() ?? '';
+      final brand = item['medicine_brand']?.toString().toLowerCase() ?? '';
+      final pharmacyName = item['pharmacy_name']?.toString().toLowerCase() ?? '';
+      final address = item['pharmacy_address']?.toString().toLowerCase() ?? '';
+      final phone = item['pharmacy_phone']?.toString().toLowerCase() ?? '';
+      return medicineName.contains(query) || brand.contains(query) || pharmacyName.contains(query) || address.contains(query) || phone.contains(query);
+    }).toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Available Medicines',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildSearchBar(
+              hint: 'Search medicines, pharmacies, or address',
+              onChanged: (value) => setState(() => _stockSearchQuery = value),
+            ),
+          ),
+          if (_isLoadingStock)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_stockErrorMessage != null)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                _stockErrorMessage!,
+                style: TextStyle(color: Colors.red[700]),
+              ),
+            )
+          else if (filteredStock.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                _stockSearchQuery.isEmpty ? 'No available medicines yet.' : 'No matches found. Try another search.',
+                style: TextStyle(color: Colors.grey[700]),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filteredStock.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final item = filteredStock[index];
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  title: Text(
+                    '${item['medicine_name'] ?? 'Medicine'} • ${item['strength'] ?? ''} ${item['form'] ?? ''}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text('Price: ${item['price'] ?? 'N/A'}'),
+                      const SizedBox(height: 4),
+                      Text('Pharmacy: ${item['pharmacy_name'] ?? 'Unknown'}'),
+                      Text('Qty: ${item['quantity'] ?? 0}  •  Dealer: ${item['dealer_name'] ?? 'N/A'}'),
+                    ],
+                  ),
+                  trailing: TextButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text(item['pharmacy_name'] ?? 'Pharmacy Details'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Address: ${item['pharmacy_address'] ?? 'Not available'}'),
+                              const SizedBox(height: 8),
+                              Text('Phone: ${item['pharmacy_phone'] ?? 'Not available'}'),
+                              if (item['open_time'] != null) ...[
+                                const SizedBox(height: 8),
+                                Text('Open: ${item['open_time']}'),
+                              ],
+                              if (item['close_time'] != null) ...[
+                                const SizedBox(height: 8),
+                                Text('Close: ${item['close_time']}'),
+                              ],
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    child: const Text('View Pharmacy'),
+                  ),
+                );
+              },
+            ),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -882,13 +1059,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => EditProfileScreen(
-                      userData: widget.userData,
-                      currentProfile: data.profile,
-                      onProfileUpdated: () {
-                        _loadDashboardData();
-                      },
-                    ),
+                    builder: (context) => const EditProfileScreen(),
                   ),
                 );
               },
@@ -947,7 +1118,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                   trailing: Switch(
                     value: true,
                     onChanged: (value) {},
-                    activeColor: Colors.blue,
+                    activeThumbColor: Colors.blue,
                   ),
                 ),
                 const Divider(height: 1),

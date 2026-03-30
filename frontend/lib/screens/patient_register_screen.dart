@@ -353,7 +353,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                         ),
                       ),
                       hint: const Text('Select your gender'),
-                      value: _selectedGender,
+                      initialValue: _selectedGender,
                       items: _genders.map((String gender) {
                         return DropdownMenuItem<String>(
                           value: gender,

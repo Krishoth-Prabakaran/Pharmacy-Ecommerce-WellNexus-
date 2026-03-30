@@ -22,6 +22,8 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
   List<Map<String, dynamic>> _dealers = [];
   List<Map<String, dynamic>> _stock = [];
   final Map<int, List<Map<String, dynamic>>> _variantsByMedicine = {};
+  String _medicineSearchQuery = '';
+  String _dealerSearchQuery = '';
 
   @override
   void initState() {
@@ -155,6 +157,26 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
     );
   }
 
+  Widget _buildSearchBar({required String hint, required ValueChanged<String> onChanged}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14.0),
+      child: TextField(
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.search),
+          hintText: hint,
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        ),
+      ),
+    );
+  }
+
   Widget _buildOverviewContent() {
     final totalVariants = _variantsByMedicine.values.fold<int>(0, (sum, list) => sum + list.length);
     final totalStock = _stock.fold<int>(0, (sum, item) => sum + (item['quantity'] as int? ?? 0));
@@ -271,19 +293,19 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                         runSpacing: 12,
                         children: [
                           ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700, foregroundColor: Colors.white),
                             icon: const Icon(Icons.add_box),
                             label: const Text('Add Medicine'),
                             onPressed: () => _openMedicineDialog(),
                           ),
                           ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700, foregroundColor: Colors.white),
                             icon: const Icon(Icons.add_task),
                             label: const Text('Add Stock'),
                             onPressed: _openStockDialog,
                           ),
                           ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade700),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700, foregroundColor: Colors.white),
                             icon: const Icon(Icons.person_add),
                             label: const Text('Add Dealer'),
                             onPressed: () => _openDealerDialog(),
@@ -402,7 +424,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
             children: [
               TextField(controller: strengthController, decoration: const InputDecoration(labelText: 'Strength')),
               TextField(controller: formController, decoration: const InputDecoration(labelText: 'Form')),
-              TextField(controller: priceController, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Price')),
+              TextField(controller: priceController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Price')),
             ],
           ),
           actions: [
@@ -590,7 +612,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                         selectedVariant = value;
                       });
                     },
-                    value: selectedVariant,
+                    initialValue: selectedVariant,
                   ),
                   const SizedBox(height: 10),
                   TextField(
@@ -612,7 +634,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                         selectedDealer = value;
                       });
                     },
-                    value: selectedDealer,
+                    initialValue: selectedDealer,
                   ),
                   const SizedBox(height: 10),
                   TextField(
@@ -697,26 +719,42 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
   }
 
   Widget _buildInventoryTab() {
+    final filteredMedicines = _medicines.where((medicine) {
+      final query = _medicineSearchQuery.toLowerCase();
+      final name = medicine['name']?.toString().toLowerCase() ?? '';
+      final brand = medicine['brand']?.toString().toLowerCase() ?? '';
+      final manufacturer = medicine['manufacturer']?.toString().toLowerCase() ?? '';
+      return name.contains(query) || brand.contains(query) || manufacturer.contains(query);
+    }).toList();
+
     return RefreshIndicator(
       onRefresh: _loadInventory,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildSectionTitle('Medicines', subtitle: 'Manage your medicine catalog and variants.'),
+          _buildSearchBar(
+            hint: 'Search medicines by name, brand, or manufacturer',
+            onChanged: (value) => setState(() => _medicineSearchQuery = value),
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total: ${_medicines.length}', style: TextStyle(fontSize: 16, color: Colors.grey[700])),
+              Text('Total: ${filteredMedicines.length}', style: TextStyle(fontSize: 16, color: Colors.grey[700])),
               ElevatedButton.icon(
                 onPressed: () => _openMedicineDialog(),
                 icon: const Icon(Icons.add),
                 label: const Text('Add Medicine'),
-                style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          ..._medicines.map((medicine) {
+          ...filteredMedicines.map((medicine) {
             final variants = _variantsByMedicine[medicine['medicine_id']] ?? [];
             return Card(
               margin: const EdgeInsets.only(bottom: 14),
@@ -735,32 +773,62 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        IconButton(onPressed: () => _openMedicineDialog(medicine: medicine), icon: const Icon(Icons.edit)),
-                        IconButton(onPressed: () => _deleteMedicine(medicine['medicine_id']), icon: const Icon(Icons.delete_forever, color: Colors.redAccent)),
+                        TextButton.icon(
+                          onPressed: () => _openMedicineDialog(medicine: medicine),
+                          icon: const Icon(Icons.edit, size: 18),
+                          label: const Text('Edit'),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => _deleteMedicine(medicine['medicine_id']),
+                          icon: const Icon(Icons.delete_forever, size: 18),
+                          label: const Text('Delete'),
+                          style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text('${medicine['brand'] ?? 'Unknown brand'} • ${medicine['manufacturer'] ?? 'Unknown manufacturer'}', style: TextStyle(color: Colors.grey[700])),
                     const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: variants.isEmpty
-                          ? [
-                              Chip(
-                                label: const Text('No variants created yet'),
-                                backgroundColor: Colors.grey.shade100,
-                              ),
-                            ]
-                          : variants.map((variant) {
-                              return Chip(
-                                label: Text('${variant['strength'] ?? ''} ${variant['form'] ?? ''}'),
-                                avatar: const Icon(Icons.medication, size: 18),
-                                onDeleted: () => _deleteVariant(variant['variant_id']),
-                                deleteIconColor: Colors.redAccent,
+                    variants.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.info_outline, color: Colors.grey),
+                                const SizedBox(width: 8),
+                                Text('No variants created yet', style: TextStyle(color: Colors.grey[700])),
+                              ],
+                            ),
+                          )
+                        : Column(
+                            children: variants.map((variant) {
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 10),
+                                color: Colors.grey.shade50,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                child: ListTile(
+                                  title: Text('${variant['strength'] ?? ''} ${variant['form'] ?? ''}'),
+                                  subtitle: Text('Price: ${variant['price'] ?? 'N/A'}'),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      TextButton.icon(
+                                        onPressed: () => _openVariantDialog(medicine, variant: variant),
+                                        icon: const Icon(Icons.edit, size: 18),
+                                        label: const Text('Edit'),
+                                      ),
+                                      TextButton.icon(
+                                        onPressed: () => _deleteVariant(variant['variant_id']),
+                                        icon: const Icon(Icons.delete, size: 18),
+                                        label: const Text('Delete'),
+                                        style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               );
                             }).toList(),
-                    ),
+                          ),
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerRight,
@@ -775,16 +843,16 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
               ),
             );
           }).toList(),
-          if (_medicines.isEmpty)
+          if (filteredMedicines.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 32),
               child: Column(
                 children: [
                   Icon(Icons.medical_information, size: 72, color: Colors.blue.shade200),
                   const SizedBox(height: 16),
-                  const Text('No medicines yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text('No medicines found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  const Text('Add your first medicine to begin building inventory.', textAlign: TextAlign.center),
+                  const Text('Try a different search term or add a new medicine.', textAlign: TextAlign.center),
                 ],
               ),
             ),
@@ -820,7 +888,11 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                     onPressed: _openStockDialog,
                     icon: const Icon(Icons.add_shopping_cart),
                     label: const Text('Add Stock'),
-                    style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
                 ],
               ),
@@ -894,7 +966,18 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
             ),
           const SizedBox(height: 28),
           _buildSectionTitle('Dealers', subtitle: 'Contact details for your supplier network.'),
-          ..._dealers.map((dealer) {
+          _buildSearchBar(
+            hint: 'Search dealers by name, email, or phone',
+            onChanged: (value) => setState(() => _dealerSearchQuery = value),
+          ),
+          const SizedBox(height: 8),
+          ..._dealers.where((dealer) {
+            final query = _dealerSearchQuery.toLowerCase();
+            final name = dealer['dealer_name']?.toString().toLowerCase() ?? '';
+            final email = dealer['email']?.toString().toLowerCase() ?? '';
+            final phone = dealer['phone']?.toString().toLowerCase() ?? '';
+            return name.contains(query) || email.contains(query) || phone.contains(query);
+          }).map((dealer) {
             return Card(
               margin: const EdgeInsets.only(bottom: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -906,23 +989,38 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(icon: const Icon(Icons.edit), onPressed: () => _openDealerDialog(dealer: dealer)),
-                    IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent), onPressed: () => _deleteDealer(dealer['dealer_id'])),
+                    TextButton.icon(
+                      onPressed: () => _openDealerDialog(dealer: dealer),
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text('Edit'),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _deleteDealer(dealer['dealer_id']),
+                      icon: const Icon(Icons.delete, size: 18),
+                      label: const Text('Delete'),
+                      style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                    ),
                   ],
                 ),
               ),
             );
           }).toList(),
-          if (_dealers.isEmpty)
+          if (_dealers.where((dealer) {
+                final query = _dealerSearchQuery.toLowerCase();
+                final name = dealer['dealer_name']?.toString().toLowerCase() ?? '';
+                final email = dealer['email']?.toString().toLowerCase() ?? '';
+                final phone = dealer['phone']?.toString().toLowerCase() ?? '';
+                return name.contains(query) || email.contains(query) || phone.contains(query);
+              }).isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 24),
               child: Column(
                 children: [
                   Icon(Icons.people_outline, size: 72, color: Colors.teal.shade200),
                   const SizedBox(height: 16),
-                  const Text('No dealers yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text('No dealers found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  const Text('Add dealer contacts so you can manage stock sourcing easily.', textAlign: TextAlign.center),
+                  const Text('Search with a different name, email, or phone number.', textAlign: TextAlign.center),
                 ],
               ),
             ),

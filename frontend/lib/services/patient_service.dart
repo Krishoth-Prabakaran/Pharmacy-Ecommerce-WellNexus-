@@ -132,8 +132,8 @@ class HealthMetric {
 
   factory HealthMetric.fromJson(Map<String, dynamic> json) {
     return HealthMetric(
-      weight: json['weight'] != null ? json['weight'].toDouble() : null,
-      height: json['height'] != null ? json['height'].toDouble() : null,
+      weight: json['weight']?.toDouble(),
+      height: json['height']?.toDouble(),
       bloodPressureSystolic: json['blood_pressure_systolic'],
       bloodPressureDiastolic: json['blood_pressure_diastolic'],
       heartRate: json['heart_rate'],
@@ -293,6 +293,40 @@ class PatientService {
     } catch (e) {
       print('❌ Dashboard error: $e');
       throw Exception('Error loading dashboard: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getAvailablePharmacyStock({String search = ''}) async {
+    try {
+      final token = await AuthService.getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      print('📊 Fetching available pharmacy stock, search=$search');
+
+      final uri = Uri.parse('http://localhost:5000/api/inventory/pharmacy-stock').replace(
+        queryParameters: search.isNotEmpty ? {'q': search} : null,
+      );
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Stock response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data as Map<String, dynamic>;
+      }
+
+      return {'success': false, 'message': 'Failed to load available stock'};
+    } catch (e) {
+      print('❌ Fetch available stock error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 

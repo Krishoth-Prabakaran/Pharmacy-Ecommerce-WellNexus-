@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import 'patient_register_screen.dart';
 import 'pharmacy_register_screen.dart';
-import 'dashboard_screen.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   final Map<String, dynamic> userData;

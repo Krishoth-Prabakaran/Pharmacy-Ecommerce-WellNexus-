@@ -259,7 +259,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _latitudeController,
-                            keyboardType: TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             decoration: InputDecoration(
                               labelText: 'Latitude',
                               prefixIcon: const Icon(Icons.pin_drop),
@@ -281,7 +281,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _longitudeController,
-                            keyboardType: TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             decoration: InputDecoration(
                               labelText: 'Longitude',
                               prefixIcon: const Icon(Icons.pin_drop),

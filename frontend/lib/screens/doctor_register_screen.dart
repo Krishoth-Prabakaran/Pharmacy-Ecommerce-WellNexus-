@@ -272,7 +272,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                           borderSide: const BorderSide(color: Colors.blue, width: 2),
                         ),
                       ),
-                      value: _specializationController.text.isNotEmpty 
+                      initialValue: _specializationController.text.isNotEmpty 
                           ? _specializationController.text 
                           : null,
                       items: _specializations.map((spec) {

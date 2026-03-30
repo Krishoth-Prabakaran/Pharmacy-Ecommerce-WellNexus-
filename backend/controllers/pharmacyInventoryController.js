@@ -152,6 +152,17 @@ exports.getStockByPharmacy = async (req, res) => {
   }
 };
 
+exports.getAvailableStock = async (req, res) => {
+  try {
+    const searchQuery = req.query.q ? String(req.query.q) : '';
+    const stock = await PharmacyInventoryModel.findAvailableStock(searchQuery);
+    res.status(200).json({ success: true, stock });
+  } catch (err) {
+    console.error('ERROR GETTING AVAILABLE STOCK:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 exports.updateStock = async (req, res) => {
   try {
     const stock = await PharmacyInventoryModel.updateStock(req.params.stockId, req.body);

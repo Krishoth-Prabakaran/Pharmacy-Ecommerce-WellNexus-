@@ -124,7 +124,7 @@ exports.getPatientDashboard = async (req, res) => {
 
   try {
     const userResult = await pool.query(
-      "SELECT user_id, username, email, role, created_at FROM users WHERE user_id = $1",
+      "SELECT user_id, username, email, role, join_date FROM users WHERE user_id = $1",
       [userId]
     );
 
@@ -139,7 +139,7 @@ exports.getPatientDashboard = async (req, res) => {
 
     const patientResult = await pool.query(
       `SELECT patient_id, first_name, last_name, phone, 
-              date_of_birth, gender, created_at as patient_created_at
+              date_of_birth, gender
        FROM patients 
        WHERE user_id = $1`,
       [userId]
@@ -165,7 +165,7 @@ exports.getPatientDashboard = async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role,
-        member_since: user.created_at
+        member_since: user.join_date
       },
       profile: patientDetails ? {
         full_name: `${patientDetails.first_name} ${patientDetails.last_name}`,

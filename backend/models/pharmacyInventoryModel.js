@@ -290,6 +290,45 @@ const PharmacyInventoryModel = {
     );
     return result.rows;
   },
+
+  async findAvailableStock(searchQuery = '') {
+    const params = [];
+    let whereClause = '';
+
+    if (searchQuery && searchQuery.trim() !== '') {
+      const searchTerm = `%${searchQuery.toLowerCase()}%`;
+      params.push(searchTerm);
+      params.push(searchTerm);
+      params.push(searchTerm);
+      params.push(searchTerm);
+      params.push(searchTerm);
+      params.push(searchTerm);
+      whereClause = `WHERE (
+          LOWER(m.name) LIKE $1 OR
+          LOWER(m.brand) LIKE $2 OR
+          LOWER(m.manufacturer) LIKE $3 OR
+          LOWER(p.pharmacy_name) LIKE $4 OR
+          LOWER(p.address) LIKE $5 OR
+          LOWER(p.phone) LIKE $6
+        )`;
+    }
+
+    const query = `SELECT s.stock_id, s.pharmacy_id, s.variant_id, s.quantity, s.stocking_date, s.expiry_date, s.dealer_id,
+              v.strength, v.form, v.price,
+              m.name AS medicine_name, m.brand AS medicine_brand, m.manufacturer AS medicine_manufacturer,
+              d.dealer_name, d.phone AS dealer_phone, d.email AS dealer_email,
+              p.pharmacy_name, p.address AS pharmacy_address, p.phone AS pharmacy_phone, p.open_time, p.close_time
+       FROM pharmacy_stock s
+       LEFT JOIN medicine_variants v ON s.variant_id = v.variant_id
+       LEFT JOIN medicines m ON v.medicine_id = m.medicine_id
+       LEFT JOIN dealers d ON s.dealer_id = d.dealer_id
+       LEFT JOIN pharmacies p ON s.pharmacy_id = p.pharmacy_id
+       ${whereClause}
+       ORDER BY s.stock_id DESC`;
+
+    const result = await pool.query(query, params);
+    return result.rows;
+  },
 };
 
 module.exports = PharmacyInventoryModel;

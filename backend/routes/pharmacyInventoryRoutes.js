@@ -22,6 +22,7 @@ router.delete('/dealers/:dealerId', inventoryController.deleteDealer);
 
 // Pharmacy stock
 router.post('/pharmacy-stock', inventoryController.createStock);
+router.get('/pharmacy-stock', inventoryController.getAvailableStock);
 router.get('/pharmacy-stock/:pharmacyId', inventoryController.getStockByPharmacy);
 router.put('/pharmacy-stock/:stockId', inventoryController.updateStock);
 router.delete('/pharmacy-stock/:stockId', inventoryController.deleteStock);
