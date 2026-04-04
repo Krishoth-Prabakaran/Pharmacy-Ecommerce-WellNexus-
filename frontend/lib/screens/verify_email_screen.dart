@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import 'patient_register_screen.dart';
 import 'pharmacy_register_screen.dart';
+import 'doctor_register_screen.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -71,6 +72,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       Navigator.pushReplacement(
         context, 
         MaterialPageRoute(builder: (context) => PharmacyRegisterScreen(userData: user))
+      );
+    } else if (user['role'] == 'doctor') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => DoctorRegisterScreen(userData: user))
       );
     } else {
       Navigator.pushReplacementNamed(context, '/dashboard');

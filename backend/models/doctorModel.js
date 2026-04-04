@@ -21,17 +21,35 @@ const DoctorModel = {
     try {
       await client.query('BEGIN');
       
-      // Step 1: Insert into users table
-      const userResult = await client.query(
-        `INSERT INTO users (username, email, password_hash, role, created_at)
-         VALUES ($1, $2, $3, $4, NOW())
-         RETURNING user_id, username, email, role`,
-        [userData.username, userData.email.toLowerCase(), userData.password_hash, 'doctor']
-      );
+      let userId;
+      let userResult;
+
+      if (userData.user_id) {
+        const existingUser = await client.query(
+          'SELECT user_id, role, email, username FROM users WHERE user_id = $1',
+          [userData.user_id]
+        );
+
+        if (existingUser.rows.length === 0) {
+          throw new Error('Verified user not found');
+        }
+
+        if (existingUser.rows[0].role !== 'doctor') {
+          throw new Error('User role must be doctor to complete doctor profile');
+        }
+
+        userId = existingUser.rows[0].user_id;
+        userResult = existingUser;
+      } else {
+        userResult = await client.query(
+          `INSERT INTO users (username, email, password_hash, role, created_at)
+           VALUES ($1, $2, $3, $4, NOW())
+           RETURNING user_id, username, email, role`,
+          [userData.username, userData.email.toLowerCase(), userData.password_hash, 'doctor']
+        );
+        userId = userResult.rows[0].user_id;
+      }
       
-      const userId = userResult.rows[0].user_id;
-      
-      // Step 2: Insert into doctors table
       const doctorResult = await client.query(
         `INSERT INTO doctors (
           first_name, last_name, specialization, license_number,
@@ -60,7 +78,6 @@ const DoctorModel = {
       
       await client.query('COMMIT');
       
-      // Combine and return all data
       return {
         ...doctorResult.rows[0],
         email: userResult.rows[0].email,

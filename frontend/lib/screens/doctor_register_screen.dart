@@ -98,6 +98,12 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
+      if (widget.userData['user_id'] == null) {
+        _showSnackBar('Unable to complete registration without verified user_id', Colors.red);
+        setState(() => _isLoading = false);
+        return;
+      }
+
       final doctorData = {
         'first_name': _firstNameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
@@ -114,9 +120,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
         'available_to': _formatTimeOfDay(_availableTo),
         'education': _educationController.text.trim(),
         'clinic_address': _clinicAddressController.text.trim(),
-        'username': widget.userData['username'],
-        'email': widget.userData['email'],
-        'password': widget.userData['password'],
+        'user_id': widget.userData['user_id'],
       };
 
       final result = await DoctorService().registerDoctor(doctorData);

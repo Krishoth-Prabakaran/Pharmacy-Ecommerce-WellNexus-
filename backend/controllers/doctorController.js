@@ -30,44 +30,50 @@ exports.registerDoctor = async (req, res) => {
     clinic_address,
     email,
     password,
-    username
+    username,
+    user_id
   } = req.body;
 
   console.log("📝 Registering doctor:", first_name, last_name);
 
   // ================ VALIDATION ================
-  // Check required fields
-  if (!first_name || !last_name || !specialization || !license_number || 
-      !phone || !email || !password || !username) {
+  if (!first_name || !last_name || !specialization || !license_number || !phone) {
     console.log("❌ Missing required fields");
     return res.status(400).json({
       success: false,
-      message: "Please provide: first_name, last_name, specialization, license_number, phone, email, password, username"
+      message: "Please provide: first_name, last_name, specialization, license_number, phone"
+    });
+  }
+
+  const isExistingUser = Boolean(user_id);
+  if (!isExistingUser && (!email || !password || !username)) {
+    console.log("❌ Missing authentication fields for new user creation");
+    return res.status(400).json({
+      success: false,
+      message: "Please provide email, password, and username when creating a new doctor account"
     });
   }
 
   try {
     // ================ UNIQUENESS CHECKS ================
-    
-    // Check if email already exists
-    const emailExists = await DoctorModel.emailExists(email);
-    if (emailExists) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already registered"
-      });
+    if (!isExistingUser) {
+      const emailExists = await DoctorModel.emailExists(email);
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Email already registered"
+        });
+      }
+
+      const usernameExists = await DoctorModel.usernameExists(username);
+      if (usernameExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Username already taken"
+        });
+      }
     }
 
-    // Check if username already exists
-    const usernameExists = await DoctorModel.usernameExists(username);
-    if (usernameExists) {
-      return res.status(400).json({
-        success: false,
-        message: "Username already taken"
-      });
-    }
-
-    // Check if license number already exists
     const licenseExists = await DoctorModel.licenseExists(license_number);
     if (licenseExists) {
       return res.status(400).json({
@@ -76,7 +82,6 @@ exports.registerDoctor = async (req, res) => {
       });
     }
 
-    // Check if phone already exists
     const phoneExists = await DoctorModel.phoneExists(phone);
     if (phoneExists) {
       return res.status(400).json({
@@ -84,10 +89,6 @@ exports.registerDoctor = async (req, res) => {
         message: "Phone number already registered"
       });
     }
-
-    // ================ PASSWORD HASHING ================
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // ================ CREATE DOCTOR ================
     const doctorData = {
@@ -104,11 +105,18 @@ exports.registerDoctor = async (req, res) => {
       clinic_address
     };
 
-    const userData = {
-      username,
-      email,
-      password_hash: hashedPassword
-    };
+    let userData;
+    if (isExistingUser) {
+      userData = { user_id };
+    } else {
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      userData = {
+        username,
+        email,
+        password_hash: hashedPassword
+      };
+    }
 
     const newDoctor = await DoctorModel.create(doctorData, userData);
 
