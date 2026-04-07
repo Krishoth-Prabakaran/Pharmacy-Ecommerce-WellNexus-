@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const pool = require("../config/db");
 const PharmacyModel = require("../models/pharmacyModel");
+const Validators = require("../utils/validators");
 
 // ==================== REGISTER PHARMACY ====================
 exports.registerPharmacy = async (req, res) => {
@@ -26,6 +27,52 @@ exports.registerPharmacy = async (req, res) => {
       success: false,
       message: "Please provide pharmacy_name, address, phone, email, and username"
     });
+  }
+
+  // Validate pharmacy name
+  const pharmacyNameValidation = Validators.validateTextField(pharmacy_name, 'Pharmacy name', 2, 100);
+  if (!pharmacyNameValidation.valid) {
+    return res.status(400).json({ success: false, message: pharmacyNameValidation.message });
+  }
+
+  // Validate address
+  const addressValidation = Validators.validateTextField(address, 'Address', 5, 255);
+  if (!addressValidation.valid) {
+    return res.status(400).json({ success: false, message: addressValidation.message });
+  }
+
+  // Validate phone number
+  const phoneValidation = Validators.validatePhoneNumber(phone);
+  if (!phoneValidation.valid) {
+    return res.status(400).json({ success: false, message: phoneValidation.message });
+  }
+
+  // Validate email format
+  const emailValidation = Validators.validateEmail(email);
+  if (!emailValidation.valid) {
+    return res.status(400).json({ success: false, message: emailValidation.message });
+  }
+
+  // Validate username
+  const usernameValidation = Validators.validateUsername(username);
+  if (!usernameValidation.valid) {
+    return res.status(400).json({ success: false, message: usernameValidation.message });
+  }
+
+  // Validate latitude if provided
+  if (latitude) {
+    const latValidation = Validators.validateLatitude(latitude);
+    if (!latValidation.valid) {
+      return res.status(400).json({ success: false, message: latValidation.message });
+    }
+  }
+
+  // Validate longitude if provided
+  if (longitude) {
+    const lonValidation = Validators.validateLongitude(longitude);
+    if (!lonValidation.valid) {
+      return res.status(400).json({ success: false, message: lonValidation.message });
+    }
   }
 
   try {
@@ -95,6 +142,12 @@ exports.registerPharmacy = async (req, res) => {
           success: false,
           message: 'Password is required for new account creation'
         });
+      }
+
+      // Validate password strength
+      const passwordValidation = Validators.validatePassword(password);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ success: false, message: passwordValidation.message });
       }
 
       const emailExists = await PharmacyModel.emailExists(email);

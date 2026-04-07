@@ -53,11 +53,13 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
     final response = await PatientService().getAvailablePharmacyStock();
     if (response['success'] == true) {
       setState(() {
-        _availableStock = List<Map<String, dynamic>>.from(response['stock'] ?? []);
+        _availableStock =
+            List<Map<String, dynamic>>.from(response['stock'] ?? []);
       });
     } else {
       setState(() {
-        _stockErrorMessage = response['message'] ?? 'Unable to load available medicines.';
+        _stockErrorMessage =
+            response['message'] ?? 'Unable to load available medicines.';
       });
     }
 
@@ -69,134 +71,245 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Patient Dashboard',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: const Color(0xFFF3F6FF),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF6366F1),
+              Color(0xFF8B5CF6),
+              Color(0xFFEC4899),
+            ],
+          ),
         ),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {
-                _loadDashboardData();
-                _loadAvailableStock();
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Refreshing dashboard...'),
-                  duration: Duration(seconds: 1),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Patient Dashboard',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            'Track health, appointments and medicines',
+                            style: TextStyle(
+                              color: Color(0xFFEDE9FE),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.refresh, color: Colors.white),
+                          onPressed: () {
+                            setState(() {
+                              _loadDashboardData();
+                              _loadAvailableStock();
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Refreshing dashboard...'),
+                                duration: Duration(seconds: 1),
+                                backgroundColor: Color(0xFF6366F1),
+                              ),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.logout, color: Colors.white),
+                          onPressed: () async {
+                            await AuthService.logout();
+                            if (mounted) {
+                              Navigator.pushReplacementNamed(context, '/login');
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await AuthService.logout();
-              if (mounted) {
-                Navigator.pushReplacementNamed(context, '/login');
-              }
-            },
-          ),
-        ],
-      ),
-      body: FutureBuilder<PatientDashboardData>(
-        future: _dashboardFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Loading your health data...'),
-                ],
               ),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 80,
-                    color: Colors.red[300],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading dashboard',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[700],
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    snapshot.error.toString(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _loadDashboardData();
-                      });
+                  child: FutureBuilder<PatientDashboardData>(
+                    future: _dashboardFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF6366F1)),
+                          ),
+                        );
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEF4444)
+                                        .withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.error_outline,
+                                    size: 60,
+                                    color: Color(0xFFEF4444),
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                const Text(
+                                  'Unable to load dashboard',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1F2937),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  snapshot.error.toString(),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Color(0xFF6B7280),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF6366F1),
+                                        Color(0xFF8B5CF6)
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _loadDashboardData();
+                                        });
+                                      },
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 28, vertical: 14),
+                                        child: Text(
+                                          'Retry',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      if (!snapshot.hasData || snapshot.data == null) {
+                        return const Center(
+                          child: Text(
+                            'No dashboard data available',
+                            style: TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }
+
+                      final dashboardData = snapshot.data!;
+                      if (!dashboardData.stats.hasCompleteProfile) {
+                        return _buildIncompleteProfileWarning();
+                      }
+
+                      return _buildDashboardContent(dashboardData);
                     },
-                    child: const Text('Retry'),
                   ),
-                ],
+                ),
               ),
-            );
-          }
-
-          if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(
-              child: Text('No data available'),
-            );
-          }
-
-          final dashboardData = snapshot.data!;
-
-          // If profile is incomplete, show completion prompt
-          if (!dashboardData.stats.hasCompleteProfile) {
-            return _buildIncompleteProfileWarning();
-          }
-
-          return _buildDashboardContent(dashboardData);
-        },
+            ],
+          ),
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: const Color(0xFF6366F1),
+          unselectedItemColor: Colors.grey[500],
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard),
+              label: 'Dashboard',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings),
+              label: 'Settings',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -212,13 +325,15 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(20),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFCD34D), Color(0xFFFFB84D)],
+                ),
+                shape: BoxShape.circle,
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.warning_amber_rounded,
-                size: 80,
-                color: Colors.orange.shade700,
+                size: 60,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 24),
@@ -226,7 +341,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
               'Profile Incomplete',
               style: TextStyle(
                 fontSize: 24,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1F2937),
               ),
             ),
             const SizedBox(height: 12),
@@ -239,25 +355,37 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
               ),
             ),
             const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const EditProfileScreen(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                minimumSize: const Size(200, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                 ),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'Complete Profile',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EditProfileScreen(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                    child: Text(
+                      'Complete Profile',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -271,7 +399,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
     if (_selectedIndex == 1) {
       return _buildProfileTab(data);
     }
-    
+
     if (_selectedIndex == 2) {
       return _buildSettingsTab();
     }
@@ -289,7 +417,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
           // Health Metrics Cards
           if (data.healthMetrics.isNotEmpty)
             _buildHealthMetricsSection(data.healthMetrics),
-          
+
           const SizedBox(height: 24),
 
           // Stats Overview
@@ -303,13 +431,13 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
           // Recent Appointments
           if (data.recentAppointments.isNotEmpty)
             _buildRecentAppointmentsSection(data.recentAppointments),
-          
+
           const SizedBox(height: 24),
 
           // Recent Prescriptions
           if (data.recentPrescriptions.isNotEmpty)
             _buildRecentPrescriptionsSection(data.recentPrescriptions),
-          
+
           const SizedBox(height: 24),
 
           // Quick Actions
@@ -323,7 +451,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
   Widget _buildWelcomeHeader(PatientDashboardData data) {
     final greeting = _getGreeting();
     final fullName = data.profile?.fullName ?? 'Patient';
-    
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -389,7 +517,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
   /// Build health metrics section
   Widget _buildHealthMetricsSection(List<HealthMetric> metrics) {
     final latestMetric = metrics.first;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -465,7 +593,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
   }
 
   /// Build individual metric card
-  Widget _buildMetricCard(String label, String value, IconData icon, Color color) {
+  Widget _buildMetricCard(
+      String label, String value, IconData icon, Color color) {
     return Column(
       children: [
         Container(
@@ -495,7 +624,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
     );
   }
 
-  Widget _buildSearchBar({required String hint, required ValueChanged<String> onChanged}) {
+  Widget _buildSearchBar(
+      {required String hint, required ValueChanged<String> onChanged}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14.0),
       child: TextField(
@@ -509,7 +639,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide.none,
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         ),
       ),
     );
@@ -558,12 +689,18 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
   Widget _buildAvailablePharmacyStockSection() {
     final filteredStock = _availableStock.where((item) {
       final query = _stockSearchQuery.toLowerCase();
-      final medicineName = item['medicine_name']?.toString().toLowerCase() ?? '';
+      final medicineName =
+          item['medicine_name']?.toString().toLowerCase() ?? '';
       final brand = item['medicine_brand']?.toString().toLowerCase() ?? '';
-      final pharmacyName = item['pharmacy_name']?.toString().toLowerCase() ?? '';
+      final pharmacyName =
+          item['pharmacy_name']?.toString().toLowerCase() ?? '';
       final address = item['pharmacy_address']?.toString().toLowerCase() ?? '';
       final phone = item['pharmacy_phone']?.toString().toLowerCase() ?? '';
-      return medicineName.contains(query) || brand.contains(query) || pharmacyName.contains(query) || address.contains(query) || phone.contains(query);
+      return medicineName.contains(query) ||
+          brand.contains(query) ||
+          pharmacyName.contains(query) ||
+          address.contains(query) ||
+          phone.contains(query);
     }).toList();
 
     return Container(
@@ -615,7 +752,9 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                _stockSearchQuery.isEmpty ? 'No available medicines yet.' : 'No matches found. Try another search.',
+                _stockSearchQuery.isEmpty
+                    ? 'No available medicines yet.'
+                    : 'No matches found. Try another search.',
                 style: TextStyle(color: Colors.grey[700]),
               ),
             )
@@ -628,7 +767,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
               itemBuilder: (context, index) {
                 final item = filteredStock[index];
                 return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   title: Text(
                     '${item['medicine_name'] ?? 'Medicine'} • ${item['strength'] ?? ''} ${item['form'] ?? ''}',
                     style: const TextStyle(fontWeight: FontWeight.bold),
@@ -640,7 +780,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                       Text('Price: ${item['price'] ?? 'N/A'}'),
                       const SizedBox(height: 4),
                       Text('Pharmacy: ${item['pharmacy_name'] ?? 'Unknown'}'),
-                      Text('Qty: ${item['quantity'] ?? 0}  •  Dealer: ${item['dealer_name'] ?? 'N/A'}'),
+                      Text(
+                          'Qty: ${item['quantity'] ?? 0}  •  Dealer: ${item['dealer_name'] ?? 'N/A'}'),
                     ],
                   ),
                   trailing: TextButton(
@@ -648,14 +789,17 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                       showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: Text(item['pharmacy_name'] ?? 'Pharmacy Details'),
+                          title:
+                              Text(item['pharmacy_name'] ?? 'Pharmacy Details'),
                           content: Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Address: ${item['pharmacy_address'] ?? 'Not available'}'),
+                              Text(
+                                  'Address: ${item['pharmacy_address'] ?? 'Not available'}'),
                               const SizedBox(height: 8),
-                              Text('Phone: ${item['pharmacy_phone'] ?? 'Not available'}'),
+                              Text(
+                                  'Phone: ${item['pharmacy_phone'] ?? 'Not available'}'),
                               if (item['open_time'] != null) ...[
                                 const SizedBox(height: 8),
                                 Text('Open: ${item['open_time']}'),
@@ -687,7 +831,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
   }
 
   /// Build individual stat item
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+  Widget _buildStatItem(
+      String label, String value, IconData icon, Color color) {
     return Column(
       children: [
         Icon(icon, color: color, size: 28),
@@ -747,7 +892,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
               final appointment = appointments[index];
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: _getStatusColor(appointment.status).withOpacity(0.1),
+                  backgroundColor:
+                      _getStatusColor(appointment.status).withOpacity(0.1),
                   child: Icon(
                     Icons.medical_services,
                     color: _getStatusColor(appointment.status),
@@ -758,7 +904,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                   '${_formatDate(appointment.appointmentDate)} at ${appointment.appointmentTime}',
                 ),
                 trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: _getStatusColor(appointment.status).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -926,7 +1073,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
   }
 
   /// Build action button for quick actions
-  Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback onPressed) {
+  Widget _buildActionButton(
+      String label, IconData icon, Color color, VoidCallback onPressed) {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(12),
@@ -992,7 +1140,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.blue,
                     borderRadius: BorderRadius.circular(20),
@@ -1034,17 +1183,20 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                   ),
                 ),
                 const Divider(height: 1),
-                _buildInfoTile('Full Name', data.profile?.fullName ?? 'Not set'),
+                _buildInfoTile(
+                    'Full Name', data.profile?.fullName ?? 'Not set'),
                 _buildInfoTile('Email', data.user.email),
                 _buildInfoTile('Phone', data.profile?.phone ?? 'Not set'),
-                _buildInfoTile('Date of Birth', 
-                  data.profile?.dateOfBirth != null 
-                    ? _formatDate(data.profile!.dateOfBirth!)
-                    : 'Not set'),
-                _buildInfoTile('Age', 
-                  data.profile?.age != null 
-                    ? '${data.profile!.age} years'
-                    : 'Not set'),
+                _buildInfoTile(
+                    'Date of Birth',
+                    data.profile?.dateOfBirth != null
+                        ? _formatDate(data.profile!.dateOfBirth!)
+                        : 'Not set'),
+                _buildInfoTile(
+                    'Age',
+                    data.profile?.age != null
+                        ? '${data.profile!.age} years'
+                        : 'Not set'),
                 _buildInfoTile('Gender', data.profile?.gender ?? 'Not set'),
               ],
             ),
@@ -1184,12 +1336,13 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Logout', style: TextStyle(color: Colors.red)),
+                        child: const Text('Logout',
+                            style: TextStyle(color: Colors.red)),
                       ),
                     ],
                   ),
                 );
-                
+
                 if (confirmed == true) {
                   await AuthService.logout();
                   if (mounted) {

@@ -1030,36 +1030,83 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Pharmacy Dashboard'),
-          backgroundColor: Colors.blue,
+          title: const Text(
+            'Pharmacy Dashboard',
+            style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.3),
+          ),
+          backgroundColor: const Color(0xFF6366F1),
           foregroundColor: Colors.white,
+          elevation: 2,
           actions: [
-            IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: _logout,
+              tooltip: 'Logout',
+            ),
           ],
-          bottom: const TabBar(
-            tabs: [
+          bottom: TabBar(
+            tabs: const [
               Tab(text: 'Overview'),
               Tab(text: 'Medicines'),
               Tab(text: 'Stock'),
             ],
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white.withOpacity(0.6),
+            indicatorColor: Colors.white,
+            indicatorWeight: 3,
           ),
         ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _pharmacy == null
-                ? const Center(child: Text('Pharmacy not found'))
-                : TabBarView(
-                    children: [
-                      _buildOverviewContent(),
-                      _buildInventoryTab(),
-                      _buildStockTab(),
-                    ],
+        body: Container(
+          color: const Color(0xFFF9FAFB),
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
                   ),
+                )
+              : _pharmacy == null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEF4444).withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.error_outline,
+                              size: 60,
+                              color: Color(0xFFEF4444),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Pharmacy not found',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : TabBarView(
+                      children: [
+                        _buildOverviewContent(),
+                        _buildInventoryTab(),
+                        _buildStockTab(),
+                      ],
+                    ),
+        ),
       ),
     );
   }

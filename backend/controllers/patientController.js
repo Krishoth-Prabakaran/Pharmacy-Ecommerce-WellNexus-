@@ -1,5 +1,6 @@
 // backend/controllers/patientController.js
 const pool = require("../config/db");
+const Validators = require("../utils/validators");
 
 // ==================== SAVE PATIENT DETAILS ====================
 exports.savePatientDetails = async (req, res) => {
@@ -19,6 +20,24 @@ exports.savePatientDetails = async (req, res) => {
     return res.status(400).json({ 
       message: "Please provide first_name, last_name, and phone" 
     });
+  }
+
+  // Validate first name
+  const firstNameValidation = Validators.validateName(first_name, 'First name');
+  if (!firstNameValidation.valid) {
+    return res.status(400).json({ message: firstNameValidation.message });
+  }
+
+  // Validate last name
+  const lastNameValidation = Validators.validateName(last_name, 'Last name');
+  if (!lastNameValidation.valid) {
+    return res.status(400).json({ message: lastNameValidation.message });
+  }
+
+  // Validate phone number
+  const phoneValidation = Validators.validatePhoneNumber(phone);
+  if (!phoneValidation.valid) {
+    return res.status(400).json({ message: phoneValidation.message });
   }
 
   if (date_of_birth) {

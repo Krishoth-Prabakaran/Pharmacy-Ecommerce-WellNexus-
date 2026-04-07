@@ -3,6 +3,7 @@ const pool = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const emailService = require('../services/emailService');
+const Validators = require('../utils/validators');
 
 // ==================== REGISTER FUNCTION ====================
 exports.register = async (req, res) => {
@@ -12,6 +13,43 @@ exports.register = async (req, res) => {
   console.log("📝 Registering:", email, "with username:", username);
 
   try {
+    // ==================== INPUT VALIDATION ====================
+    // Validate email format
+    const emailValidation = Validators.validateEmail(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({ 
+        success: false, 
+        message: emailValidation.message 
+      });
+    }
+
+    // Validate username
+    const usernameValidation = Validators.validateUsername(username);
+    if (!usernameValidation.valid) {
+      return res.status(400).json({ 
+        success: false, 
+        message: usernameValidation.message 
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = Validators.validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ 
+        success: false, 
+        message: passwordValidation.message 
+      });
+    }
+
+    // Validate role
+    const roleValidation = Validators.validateRole(role);
+    if (!roleValidation.valid) {
+      return res.status(400).json({ 
+        success: false, 
+        message: roleValidation.message 
+      });
+    }
+
     // Check if either email OR username already exists
     const userExists = await pool.query(
       "SELECT * FROM users WHERE email = $1 OR username = $2", 
@@ -210,10 +248,20 @@ exports.login = async (req, res) => {
   
   console.log("🔑 Login attempt for email:", email);
   
+  // Validate email and password presence
   if (!email || !password) {
     return res.status(400).json({ 
       success: false, 
       message: "Email and password are required" 
+    });
+  }
+
+  // Validate email format
+  const emailValidation = Validators.validateEmail(email);
+  if (!emailValidation.valid) {
+    return res.status(400).json({ 
+      success: false, 
+      message: emailValidation.message 
     });
   }
   

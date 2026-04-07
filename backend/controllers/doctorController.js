@@ -7,6 +7,7 @@
 
 const bcrypt = require("bcrypt");
 const DoctorModel = require("../models/doctorModel");
+const Validators = require("../utils/validators");
 
 /**
  * Register a new doctor
@@ -45,6 +46,44 @@ exports.registerDoctor = async (req, res) => {
     });
   }
 
+  // Validate first name
+  const firstNameValidation = Validators.validateName(first_name, 'First name');
+  if (!firstNameValidation.valid) {
+    return res.status(400).json({ success: false, message: firstNameValidation.message });
+  }
+
+  // Validate last name
+  const lastNameValidation = Validators.validateName(last_name, 'Last name');
+  if (!lastNameValidation.valid) {
+    return res.status(400).json({ success: false, message: lastNameValidation.message });
+  }
+
+  // Validate specialization
+  const specValidation = Validators.validateSpecialization(specialization);
+  if (!specValidation.valid) {
+    return res.status(400).json({ success: false, message: specValidation.message });
+  }
+
+  // Validate license number
+  const licenseValidation = Validators.validateLicenseNumber(license_number);
+  if (!licenseValidation.valid) {
+    return res.status(400).json({ success: false, message: licenseValidation.message });
+  }
+
+  // Validate phone number
+  const phoneValidation = Validators.validatePhoneNumber(phone);
+  if (!phoneValidation.valid) {
+    return res.status(400).json({ success: false, message: phoneValidation.message });
+  }
+
+  // Validate consultation fee if provided
+  if (consultation_fee) {
+    const feeValidation = Validators.validateConsultationFee(consultation_fee);
+    if (!feeValidation.valid) {
+      return res.status(400).json({ success: false, message: feeValidation.message });
+    }
+  }
+
   const isExistingUser = Boolean(user_id);
   if (!isExistingUser && (!email || !password || !username)) {
     console.log("❌ Missing authentication fields for new user creation");
@@ -52,6 +91,27 @@ exports.registerDoctor = async (req, res) => {
       success: false,
       message: "Please provide email, password, and username when creating a new doctor account"
     });
+  }
+
+  // Validate authentication fields for new users
+  if (!isExistingUser) {
+    // Validate email
+    const emailValidation = Validators.validateEmail(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({ success: false, message: emailValidation.message });
+    }
+
+    // Validate username
+    const usernameValidation = Validators.validateUsername(username);
+    if (!usernameValidation.valid) {
+      return res.status(400).json({ success: false, message: usernameValidation.message });
+    }
+
+    // Validate password strength
+    const passwordValidation = Validators.validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ success: false, message: passwordValidation.message });
+    }
   }
 
   try {
