@@ -468,9 +468,166 @@ exports.checkPatientDetails = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ ERROR CHECKING PATIENT DETAILS:", err.message);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Server error while checking patient details",
-      error: err.message 
+      error: err.message
+    });
+  }
+};
+
+// ==================== CREATE PATIENT (FOR DOCTORS) ====================
+exports.createPatient = async (req, res) => {
+  const {
+    first_name,
+    last_name,
+    phone,
+    email,
+    date_of_birth,
+    gender,
+    username,
+    password
+  } = req.body;
+
+  console.log("📝 Creating patient:", first_name, last_name);
+
+  // ================ VALIDATION ================
+  if (!first_name || !last_name || !phone) {
+    console.log("❌ Missing required fields");
+    return res.status(400).json({
+      success: false,
+      message: "Please provide: first_name, last_name, phone"
+    });
+  }
+
+  // Validate first name
+  const firstNameValidation = Validators.validateName(first_name, 'First name');
+  if (!firstNameValidation.valid) {
+    return res.status(400).json({ success: false, message: firstNameValidation.message });
+  }
+
+  // Validate last name
+  const lastNameValidation = Validators.validateName(last_name, 'Last name');
+  if (!lastNameValidation.valid) {
+    return res.status(400).json({ success: false, message: lastNameValidation.message });
+  }
+
+  // Validate phone number
+  const phoneValidation = Validators.validatePhoneNumber(phone);
+  if (!phoneValidation.valid) {
+    return res.status(400).json({ success: false, message: phoneValidation.message });
+  }
+
+  // Validate email if provided
+  if (email) {
+    const emailValidation = Validators.validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ success: false, message: emailValidation.message });
+    }
+  }
+
+  // Validate date of birth if provided
+  if (date_of_birth) {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date_of_birth)) {
+      return res.status(400).json({
+        success: false,
+        message: "Date of birth must be in YYYY-MM-DD format"
+      });
+    }
+  }
+
+  // Validate gender if provided
+  if (gender && !['male', 'female', 'other'].includes(gender.toLowerCase())) {
+    return res.status(400).json({ success: false, message: "Gender must be 'male', 'female', or 'other'" });
+  }
+
+  try {
+    // Check if phone already exists
+    const existingPhone = await pool.query(
+      "SELECT patient_id FROM patients WHERE phone = $1",
+      [phone]
+    );
+
+    if (existingPhone.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Phone number already registered"
+      });
+    }
+
+    // Start transaction
+    await pool.query('BEGIN');
+
+    let userId = null;
+    let password_hash = null;
+
+    // Create user account if username and password provided
+    if (username && password) {
+      const bcrypt = require("bcrypt");
+      const saltRounds = 10;
+      password_hash = await bcrypt.hash(password, saltRounds);
+
+      const userResult = await pool.query(
+        `INSERT INTO users (username, email, password_hash, role, created_at)
+         VALUES ($1, $2, $3, $4, NOW())
+         RETURNING user_id`,
+        [username, email?.toLowerCase(), password_hash, 'patient']
+      );
+      userId = userResult.rows[0].user_id;
+    }
+
+    // Create patient record
+    const patientResult = await pool.query(
+      `INSERT INTO patients (first_name, last_name, phone, email, date_of_birth, gender, user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [
+        first_name,
+        last_name,
+        phone,
+        email?.toLowerCase(),
+        date_of_birth,
+        gender?.toLowerCase(),
+        userId
+      ]
+    );
+
+    await pool.query('COMMIT');
+
+    const patient = patientResult.rows[0];
+
+    console.log("✅ Patient created successfully:", patient.patient_id);
+
+    res.status(201).json({
+      success: true,
+      message: "Patient created successfully",
+      patient: {
+        patient_id: patient.patient_id,
+        first_name: patient.first_name,
+        last_name: patient.last_name,
+        phone: patient.phone,
+        email: patient.email,
+        date_of_birth: patient.date_of_birth,
+        gender: patient.gender,
+        user_id: patient.user_id
+      }
+    });
+
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    console.error("❌ Error creating patient:", error);
+
+    if (error.code === '23505') { // Unique constraint violation
+      return res.status(409).json({
+        success: false,
+        message: "Phone number or username already exists"
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to create patient",
+      error: error.message
     });
   }
 };

@@ -236,4 +236,56 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
+
+  // ==================== CREATE PATIENT ====================
+  static Future<Map<String, dynamic>> createPatient(Map<String, dynamic> patientData) async {
+    try {
+      print('📡 Creating patient: ${patientData['first_name']} ${patientData['last_name']}');
+      print('🔗 URL: http://localhost:5000/api/patients');
+
+      final response = await http.post(
+        Uri.parse('http://localhost:5000/api/patients'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(patientData),
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Create patient response status: ${response.statusCode}');
+      print('📥 Create patient response body: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      print('❌ Create patient error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // ==================== CREATE PRESCRIPTION ====================
+  static Future<Map<String, dynamic>> createPrescription(Map<String, dynamic> prescriptionData) async {
+    try {
+      print('📡 Creating prescription for patient: ${prescriptionData['patient_id']}');
+      print('🔗 URL: http://localhost:5000/api/prescriptions');
+
+      final response = await http.post(
+        Uri.parse('http://localhost:5000/api/prescriptions'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(prescriptionData),
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Create prescription response status: ${response.statusCode}');
+      print('📥 Create prescription response body: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      print('❌ Create prescription error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
 }

@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../services/patient_service.dart';
 import '../utils/validators.dart';
-import 'dashboard_screen.dart';
+import 'doctor_dashboard_screen.dart';
 
 /// PatientRegisterScreen - Collects additional patient information
 /// This screen appears after registration ONLY for patients who haven't

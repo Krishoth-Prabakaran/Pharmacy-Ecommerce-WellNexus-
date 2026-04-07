@@ -5,6 +5,9 @@ const patientController = require("../controllers/patientController");
 
 // ==================== PATIENT ROUTES ====================
 
+// POST /api/patients - Create new patient (for doctors)
+router.post("/", patientController.createPatient);
+
 // POST /api/patients/details - Save patient details
 // Body: { user_id, first_name, last_name, phone, date_of_birth, gender }
 router.post("/details", patientController.savePatientDetails);
