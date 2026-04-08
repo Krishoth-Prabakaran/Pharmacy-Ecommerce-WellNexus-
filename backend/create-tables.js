@@ -54,9 +54,33 @@ async function createTables() {
       ) TABLESPACE pg_default;
     `);
 
-    // Create index
+    // Create appointments table
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_patients_user_id ON public.patients USING BTREE (user_id) TABLESPACE pg_default;
+      CREATE TABLE IF NOT EXISTS public.appointments (
+        appointment_id SERIAL NOT NULL,
+        doctor_id INTEGER NOT NULL,
+        patient_id INTEGER NOT NULL,
+        appointment_date DATE NOT NULL,
+        appointment_time TIME NOT NULL,
+        duration_minutes INTEGER DEFAULT 30,
+        appointment_type CHARACTER VARYING(50) DEFAULT 'consultation',
+        notes TEXT,
+        status CHARACTER VARYING(20) DEFAULT 'scheduled',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        CONSTRAINT appointments_pkey PRIMARY KEY (appointment_id),
+        CONSTRAINT appointments_doctor_id_fkey FOREIGN KEY (doctor_id) REFERENCES users (user_id) ON DELETE CASCADE,
+        CONSTRAINT appointments_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES users (user_id) ON DELETE CASCADE
+      ) TABLESPACE pg_default;
+    `);
+
+    // Create index for appointments
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_appointments_doctor_date ON public.appointments USING BTREE (doctor_id, appointment_date) TABLESPACE pg_default;
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_appointments_patient ON public.appointments USING BTREE (patient_id) TABLESPACE pg_default;
     `);
 
     console.log('Tables created successfully');

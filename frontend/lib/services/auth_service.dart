@@ -288,4 +288,184 @@ class AuthService {
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
+
+  // ==================== APPOINTMENT METHODS ====================
+
+  // Create appointment
+  static Future<Map<String, dynamic>> createAppointment(Map<String, dynamic> appointmentData) async {
+    try {
+      // final token = await _getToken();
+      // if (token == null) {
+      //   return {'success': false, 'message': 'Not authenticated'};
+      // }
+
+      print('📡 Creating appointment');
+      print('🔗 URL: http://localhost:5000/api/appointments');
+
+      final response = await http.post(
+        Uri.parse('http://localhost:5000/api/appointments'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          // 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(appointmentData),
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Create appointment response status: ${response.statusCode}');
+      print('📥 Create appointment response body: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      print('❌ Create appointment error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Get appointments by doctor
+  static Future<Map<String, dynamic>> getAppointmentsByDoctor({String? status, int? limit}) async {
+    try {
+      // final token = await _getToken();
+      // if (token == null) {
+      //   return {'success': false, 'message': 'Not authenticated'};
+      // }
+
+      String url = 'http://localhost:5000/api/appointments/doctor';
+      final params = <String, String>{};
+      if (status != null) params['status'] = status;
+      if (limit != null) params['limit'] = limit.toString();
+
+      if (params.isNotEmpty) {
+        url += '?' + params.entries.map((e) => '${e.key}=${e.value}').join('&');
+      }
+
+      print('📡 Getting appointments by doctor');
+      print('🔗 URL: $url');
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          // 'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Get appointments response status: ${response.statusCode}');
+      print('📥 Get appointments response body: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      print('❌ Get appointments error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Update appointment status
+  static Future<Map<String, dynamic>> updateAppointmentStatus(int appointmentId, String status, {String? notes}) async {
+    try {
+      // final token = await _getToken();
+      // if (token == null) {
+      //   return {'success': false, 'message': 'Not authenticated'};
+      // }
+
+      final body = {'status': status};
+      if (notes != null) body['notes'] = notes;
+
+      print('📡 Updating appointment $appointmentId status to $status');
+      print('🔗 URL: http://localhost:5000/api/appointments/$appointmentId/status');
+
+      final response = await http.put(
+        Uri.parse('http://localhost:5000/api/appointments/$appointmentId/status'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          // 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Update appointment response status: ${response.statusCode}');
+      print('📥 Update appointment response body: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      print('❌ Update appointment error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // ==================== PATIENT METHODS ====================
+
+  // Get patients (for doctor's records)
+  static Future<Map<String, dynamic>> getPatients() async {
+    try {
+      // final token = await _getToken();
+      // if (token == null) {
+      //   return {'success': false, 'message': 'Not authenticated'};
+      // }
+
+      print('📡 Getting patients');
+      print('🔗 URL: http://localhost:5000/api/patients');
+
+      final response = await http.get(
+        Uri.parse('http://localhost:5000/api/patients'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          // 'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Get patients response status: ${response.statusCode}');
+      print('📥 Get patients response body: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      print('❌ Get patients error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Get prescription history for a patient
+  static Future<Map<String, dynamic>> getPatientPrescriptionHistory(int patientId) async {
+    try {
+      // final token = await _getToken();
+      // if (token == null) {
+      //   return {'success': false, 'message': 'Not authenticated'};
+      // }
+
+      print('📡 Getting prescription history for patient $patientId');
+      print('🔗 URL: http://localhost:5000/api/prescriptions/patient/$patientId');
+
+      final response = await http.get(
+        Uri.parse('http://localhost:5000/api/prescriptions/patient/$patientId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          // 'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Get prescription history response status: ${response.statusCode}');
+      print('📥 Get prescription history response body: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      print('❌ Get prescription history error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // ==================== HELPER METHODS ====================
+
+  static Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token');
+  }
 }

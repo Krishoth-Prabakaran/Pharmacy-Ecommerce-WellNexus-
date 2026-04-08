@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
 class CreatePrescriptionScreen extends StatefulWidget {
-  const CreatePrescriptionScreen({super.key});
+  final Map<String, dynamic>? preSelectedPatient;
+
+  const CreatePrescriptionScreen({super.key, this.preSelectedPatient});
 
   @override
   State<CreatePrescriptionScreen> createState() => _CreatePrescriptionScreenState();
@@ -25,6 +27,15 @@ class _CreatePrescriptionScreenState extends State<CreatePrescriptionScreen> {
   void initState() {
     super.initState();
     _loadDoctorInfo();
+    _preFillPatientData();
+  }
+
+  void _preFillPatientData() {
+    if (widget.preSelectedPatient != null) {
+      final patient = widget.preSelectedPatient!;
+      _patientIdController.text = patient['user_id']?.toString() ?? '';
+      // You could also pre-fill other patient-related fields if available
+    }
   }
 
   @override
