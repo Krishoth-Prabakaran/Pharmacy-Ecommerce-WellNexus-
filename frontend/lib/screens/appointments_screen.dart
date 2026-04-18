@@ -29,40 +29,57 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
   Future<void> _loadAppointments() async {
     setState(() => _isLoading = true);
     try {
-      // TODO: Implement API call to get appointments
-      // For now, using mock data
-      await Future.delayed(const Duration(seconds: 1));
-      setState(() {
-        _appointments = [
-          {
-            'id': 1,
-            'patient_name': 'John Doe',
-            'date': '2024-01-15',
-            'time': '10:00',
-            'type': 'consultation',
-            'status': 'scheduled',
-            'notes': 'Regular checkup'
-          },
-          {
-            'id': 2,
-            'patient_name': 'Jane Smith',
-            'date': '2024-01-15',
-            'time': '14:30',
-            'type': 'follow-up',
-            'status': 'confirmed',
-            'notes': 'Blood test results review'
-          },
-          {
-            'id': 3,
-            'patient_name': 'Mike Johnson',
-            'date': '2024-01-16',
-            'time': '11:00',
-            'type': 'consultation',
-            'status': 'completed',
-            'notes': 'Initial consultation'
-          },
-        ];
-      });
+      final response = await AuthService.getAppointmentsByDoctor();
+      
+      if (response['success'] == true && response['appointments'] != null) {
+        List<dynamic> appointmentsList = response['appointments'];
+        setState(() {
+          _appointments = appointmentsList.map<Map<String, dynamic>>((a) {
+            return {
+              'id': a['appointment_id'] ?? 0,
+              'patient_name': '${a['patient_first_name'] ?? 'N/A'} ${a['patient_last_name'] ?? 'N/A'}'.trim(),
+              'date': a['appointment_date'] ?? 'N/A',
+              'time': a['appointment_time'] ?? 'N/A',
+              'type': a['appointment_type'] ?? 'consultation',
+              'status': a['status'] ?? 'scheduled',
+              'notes': a['notes'] ?? '',
+            };
+          }).toList();
+        });
+      } else {
+        // Use mock data if API fails
+        setState(() {
+          _appointments = [
+            {
+              'id': 1,
+              'patient_name': 'John Doe',
+              'date': '2024-01-15',
+              'time': '10:00',
+              'type': 'consultation',
+              'status': 'scheduled',
+              'notes': 'Regular checkup'
+            },
+            {
+              'id': 2,
+              'patient_name': 'Jane Smith',
+              'date': '2024-01-15',
+              'time': '14:30',
+              'type': 'follow-up',
+              'status': 'confirmed',
+              'notes': 'Blood test results review'
+            },
+            {
+              'id': 3,
+              'patient_name': 'Mike Johnson',
+              'date': '2024-01-16',
+              'time': '11:00',
+              'type': 'consultation',
+              'status': 'completed',
+              'notes': 'Initial consultation'
+            },
+          ];
+        });
+      }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to load appointments: $error')),

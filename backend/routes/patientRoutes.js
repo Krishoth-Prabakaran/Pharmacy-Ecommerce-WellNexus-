@@ -5,6 +5,9 @@ const patientController = require("../controllers/patientController");
 
 // ==================== PATIENT ROUTES ====================
 
+// GET /api/patients - Get all patients (with optional search)
+router.get("/", patientController.getAllPatients);
+
 // POST /api/patients - Create new patient (for doctors)
 router.post("/", patientController.createPatient);
 

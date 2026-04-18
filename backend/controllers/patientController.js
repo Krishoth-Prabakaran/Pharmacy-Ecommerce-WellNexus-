@@ -1,4 +1,3 @@
-// backend/controllers/patientController.js
 const pool = require("../config/db");
 const Validators = require("../utils/validators");
 
@@ -540,94 +539,40 @@ exports.createPatient = async (req, res) => {
   if (gender && !['male', 'female', 'other'].includes(gender.toLowerCase())) {
     return res.status(400).json({ success: false, message: "Gender must be 'male', 'female', or 'other'" });
   }
+};
+
+// ==================== GET ALL PATIENTS ====================
+exports.getAllPatients = async (req, res) => {
+  const { search } = req.query;
+
+  console.log("🔍 Fetching all patients", search ? `with search: ${search}` : "");
 
   try {
-    // Check if phone already exists
-    const existingPhone = await pool.query(
-      "SELECT patient_id FROM patients WHERE phone = $1",
-      [phone]
-    );
+    let query = `
+      SELECT p.patient_id, p.user_id, p.first_name, p.last_name, p.gender, p.date_of_birth, p.phone, p.email
+      FROM patients p
+    `;
 
-    if (existingPhone.rows.length > 0) {
-      return res.status(409).json({
-        success: false,
-        message: "Phone number already registered"
-      });
+    const params = [];
+
+    if (search) {
+      query += ` WHERE p.first_name ILIKE $1 OR p.last_name ILIKE $1 OR p.email ILIKE $1 OR p.phone ILIKE $1`;
+      params.push(`%${search}%`);
     }
 
-    // Start transaction
-    await pool.query('BEGIN');
+    query += ` ORDER BY p.first_name, p.last_name`;
 
-    let userId = null;
-    let password_hash = null;
+    const result = await pool.query(query, params);
 
-    // Create user account if username and password provided
-    if (username && password) {
-      const bcrypt = require("bcrypt");
-      const saltRounds = 10;
-      password_hash = await bcrypt.hash(password, saltRounds);
+    console.log(`✅ Retrieved ${result.rows.length} patient(s)`);
 
-      const userResult = await pool.query(
-        `INSERT INTO users (username, email, password_hash, role, created_at)
-         VALUES ($1, $2, $3, $4, NOW())
-         RETURNING user_id`,
-        [username, email?.toLowerCase(), password_hash, 'patient']
-      );
-      userId = userResult.rows[0].user_id;
-    }
-
-    // Create patient record
-    const patientResult = await pool.query(
-      `INSERT INTO patients (first_name, last_name, phone, email, date_of_birth, gender, user_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`,
-      [
-        first_name,
-        last_name,
-        phone,
-        email?.toLowerCase(),
-        date_of_birth,
-        gender?.toLowerCase(),
-        userId
-      ]
-    );
-
-    await pool.query('COMMIT');
-
-    const patient = patientResult.rows[0];
-
-    console.log("✅ Patient created successfully:", patient.patient_id);
-
-    res.status(201).json({
+    res.json({
       success: true,
-      message: "Patient created successfully",
-      patient: {
-        patient_id: patient.patient_id,
-        first_name: patient.first_name,
-        last_name: patient.last_name,
-        phone: patient.phone,
-        email: patient.email,
-        date_of_birth: patient.date_of_birth,
-        gender: patient.gender,
-        user_id: patient.user_id
-      }
+      count: result.rows.length,
+      patients: result.rows
     });
-
   } catch (error) {
-    await pool.query('ROLLBACK');
-    console.error("❌ Error creating patient:", error);
-
-    if (error.code === '23505') { // Unique constraint violation
-      return res.status(409).json({
-        success: false,
-        message: "Phone number or username already exists"
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to create patient",
-      error: error.message
-    });
+    console.error('❌ Error fetching patients:', error.message);
+    res.status(500).json({ success: false, message: "Error fetching patients", error: error.message });
   }
 };

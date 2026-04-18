@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'create_prescription_screen.dart';
+import 'patient_detail_screen.dart';
+import 'prescription_history_screen.dart';
 
 class PatientRecordsScreen extends StatefulWidget {
   const PatientRecordsScreen({super.key});
@@ -23,61 +25,76 @@ class _PatientRecordsScreenState extends State<PatientRecordsScreen> with Ticker
   Future<void> _loadPatients() async {
     setState(() => _isLoading = true);
     try {
-      // TODO: Implement API call to get patients
-      // For now, using mock data
-      await Future.delayed(const Duration(seconds: 1));
-      setState(() {
-        _patients = [
-          {
-            'id': 1,
-            'user_id': 101,
-            'name': 'John Doe',
-            'phone': '+1234567890',
-            'email': 'john.doe@email.com',
-            'last_visit': '2024-01-10',
-            'prescription_count': 3,
-            'status': 'active'
-          },
-          {
-            'id': 2,
-            'user_id': 102,
-            'name': 'Jane Smith',
-            'phone': '+1234567891',
-            'email': 'jane.smith@email.com',
-            'last_visit': '2024-01-08',
-            'prescription_count': 5,
-            'status': 'active'
-          },
-          {
-            'id': 3,
-            'user_id': 103,
-            'name': 'Mike Johnson',
-            'phone': '+1234567892',
-            'email': 'mike.j@email.com',
-            'last_visit': '2024-01-05',
-            'prescription_count': 2,
-            'status': 'inactive'
-          },
-        ];
-      });
+      final response = await AuthService.getPatients();
+      
+      if (response['success'] == true && response['patients'] != null) {
+        List<dynamic> patientsList = response['patients'];
+        setState(() {
+          _patients = patientsList.map<Map<String, dynamic>>((p) {
+            return {
+              'id': p['patient_id'] ?? 0,
+              'user_id': p['user_id'],
+              'name': '${p['first_name'] ?? ''} ${p['last_name'] ?? ''}'.trim(),
+              'phone': p['phone'] ?? 'N/A',
+              'email': p['email'] ?? 'N/A',
+              'last_visit': 'N/A', // Would need data from appointments table
+              'prescription_count': p['prescription_count'] ?? 0,
+              'status': 'active',
+              'date_of_birth': p['date_of_birth'],
+              'gender': p['gender'],
+            };
+          }).toList();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response['message'] ?? 'Failed to load patients')),
+        );
+      }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load patients: $error')),
+        SnackBar(content: Text('Error loading patients: $error')),
       );
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  List<Map<String, dynamic>> get _filteredPatients {
-    if (_searchQuery.isEmpty) return _patients;
-    return _patients.where((patient) {
-      final name = patient['name'].toString().toLowerCase();
-      final phone = patient['phone'].toString().toLowerCase();
-      final email = patient['email'].toString().toLowerCase();
-      final query = _searchQuery.toLowerCase();
-      return name.contains(query) || phone.contains(query) || email.contains(query);
-    }).toList();
+  Future<void> _searchPatients(String query) async {
+    if (query.isEmpty) {
+      _loadPatients();
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final response = await AuthService.getPatients(searchQuery: query);
+      
+      if (response['success'] == true && response['patients'] != null) {
+        List<dynamic> patientsList = response['patients'];
+        setState(() {
+          _patients = patientsList.map<Map<String, dynamic>>((p) {
+            return {
+              'id': p['patient_id'] ?? 0,
+              'user_id': p['user_id'],
+              'name': '${p['first_name'] ?? ''} ${p['last_name'] ?? ''}'.trim(),
+              'phone': p['phone'] ?? 'N/A',
+              'email': p['email'] ?? 'N/A',
+              'last_visit': 'N/A',
+              'prescription_count': p['prescription_count'] ?? 0,
+              'status': 'active',
+              'date_of_birth': p['date_of_birth'],
+              'gender': p['gender'],
+            };
+          }).toList();
+        });
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Search error: $error')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -112,7 +129,10 @@ class _PatientRecordsScreenState extends State<PatientRecordsScreen> with Ticker
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
+              onChanged: (value) {
+                setState(() => _searchQuery = value);
+                _searchPatients(value);
+              },
               decoration: InputDecoration(
                 hintText: 'Search patients...',
                 prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
@@ -138,7 +158,7 @@ class _PatientRecordsScreenState extends State<PatientRecordsScreen> with Ticker
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _filteredPatients.isEmpty
+                : _patients.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -162,9 +182,9 @@ class _PatientRecordsScreenState extends State<PatientRecordsScreen> with Ticker
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: _filteredPatients.length,
+                        itemCount: _patients.length,
                         itemBuilder: (context, index) {
-                          final patient = _filteredPatients[index];
+                          final patient = _patients[index];
                           return _buildPatientCard(patient);
                         },
                       ),
@@ -408,34 +428,5 @@ class PatientSearchDelegate extends SearchDelegate<String> {
   @override
   Widget buildSuggestions(BuildContext context) {
     return buildResults(context);
-  }
-}
-
-// Placeholder classes - these would need to be implemented
-class PatientDetailScreen extends StatelessWidget {
-  final Map<String, dynamic> patient;
-
-  const PatientDetailScreen({super.key, required this.patient});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('${patient['name']} Details')),
-      body: const Center(child: Text('Patient details screen - Coming soon!')),
-    );
-  }
-}
-
-class PrescriptionHistoryScreen extends StatelessWidget {
-  final Map<String, dynamic> patient;
-
-  const PrescriptionHistoryScreen({super.key, required this.patient});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('${patient['name']} - Prescription History')),
-      body: const Center(child: Text('Prescription history screen - Coming soon!')),
-    );
   }
 }

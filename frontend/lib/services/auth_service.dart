@@ -401,18 +401,23 @@ class AuthService {
   // ==================== PATIENT METHODS ====================
 
   // Get patients (for doctor's records)
-  static Future<Map<String, dynamic>> getPatients() async {
+  static Future<Map<String, dynamic>> getPatients({String? searchQuery}) async {
     try {
       // final token = await _getToken();
       // if (token == null) {
       //   return {'success': false, 'message': 'Not authenticated'};
       // }
 
+      String url = 'http://localhost:5000/api/patients';
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        url += '?search=${Uri.encodeComponent(searchQuery)}';
+      }
+
       print('📡 Getting patients');
-      print('🔗 URL: http://localhost:5000/api/patients');
+      print('🔗 URL: $url');
 
       final response = await http.get(
-        Uri.parse('http://localhost:5000/api/patients'),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
