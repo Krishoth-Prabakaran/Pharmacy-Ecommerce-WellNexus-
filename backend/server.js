@@ -11,6 +11,7 @@ const doctorRoutes = require("./routes/doctorRoutes");
 const pharmacyInventoryRoutes = require("./routes/pharmacyInventoryRoutes");
 const prescriptionRoutes = require("./routes/prescriptionRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use("/api/inventory", pharmacyInventoryRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/prescriptions", prescriptionRoutes);
 app.use("/api/appointments", appointmentRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Test route
 app.get("/api/test", (req, res) => {
@@ -67,7 +69,8 @@ app.get("/api/test", (req, res) => {
       auth: "/api/auth",
       patients: "/api/patients",
       doctors: "/api/doctors",
-      pharmacies: "/api/pharmacies"
+      pharmacies: "/api/pharmacies",
+      admin: "/api/admin"
     }
   });
 });

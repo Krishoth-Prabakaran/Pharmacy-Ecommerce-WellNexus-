@@ -185,3 +185,16 @@ exports.deleteStock = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// ======= Low Stock Alerts =======
+exports.getLowStockByPharmacy = async (req, res) => {
+  try {
+    const { pharmacyId } = req.params;
+    const threshold = parseInt(req.query.threshold) || 10;
+    const stock = await PharmacyInventoryModel.findLowStockByPharmacy(pharmacyId, threshold);
+    res.status(200).json({ success: true, stock, count: stock.length });
+  } catch (err) {
+    console.error('ERROR GETTING LOW STOCK:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

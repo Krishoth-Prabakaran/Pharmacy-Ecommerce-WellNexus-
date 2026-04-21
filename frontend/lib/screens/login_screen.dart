@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../utils/validators.dart';
 import 'register_screen.dart';
 import 'verify_email_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -377,6 +378,31 @@ void _showVerificationDialog(String email) {
                           },
                         ),
                         const SizedBox(height: 28),
+
+                        // Forgot Password Link
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ForgotPasswordScreen(),
+                              ),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            alignment: Alignment.centerLeft,
+                          ),
+                          child: const Text(
+                            'Forgot Password?',
+                            style: TextStyle(
+                              color: Color(0xFF6366F1),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
 
                         // Login Button with Animation
                         Container(

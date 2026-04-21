@@ -27,4 +27,7 @@ router.get('/pharmacy-stock/:pharmacyId', inventoryController.getStockByPharmacy
 router.put('/pharmacy-stock/:stockId', inventoryController.updateStock);
 router.delete('/pharmacy-stock/:stockId', inventoryController.deleteStock);
 
+// Low stock alerts
+router.get('/pharmacy-stock/:pharmacyId/low-stock', inventoryController.getLowStockByPharmacy);
+
 module.exports = router;

@@ -291,6 +291,24 @@ const PharmacyInventoryModel = {
     return result.rows;
   },
 
+  // ======= Low Stock Alerts =======
+  async findLowStockByPharmacy(pharmacyId, threshold = 10) {
+    const result = await pool.query(
+      `SELECT s.stock_id, s.pharmacy_id, s.variant_id, s.quantity, s.stocking_date, s.expiry_date, s.dealer_id,
+              v.strength, v.form, v.price,
+              m.name AS medicine_name, m.brand AS medicine_brand, m.manufacturer AS medicine_manufacturer,
+              d.dealer_id, d.dealer_name, d.phone AS dealer_phone, d.email AS dealer_email
+       FROM pharmacy_stock s
+       LEFT JOIN medicine_variants v ON s.variant_id = v.variant_id
+       LEFT JOIN medicines m ON v.medicine_id = m.medicine_id
+       LEFT JOIN dealers d ON s.dealer_id = d.dealer_id
+       WHERE s.pharmacy_id = $1 AND s.quantity <= $2
+       ORDER BY s.quantity ASC, s.stock_id DESC`,
+      [pharmacyId, threshold]
+    );
+    return result.rows;
+  },
+
   async findAvailableStock(searchQuery = '') {
     const params = [];
     let whereClause = '';

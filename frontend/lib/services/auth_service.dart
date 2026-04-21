@@ -190,6 +190,7 @@ class AuthService {
   Future<void> _storeUserData(Map<String, dynamic> data) async {
     final prefs = await SharedPreferences.getInstance();
     
+    // Handle both response formats: {user: {...}, token: "..."} and {token: "...", role: "...", user_id: 123, ...}
     final userData = data['user'] ?? data;
     final token = data['token'] ?? '';
     
@@ -463,6 +464,125 @@ class AuthService {
       return data;
     } catch (e) {
       print('❌ Get prescription history error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // ==================== FORGOT PASSWORD ====================
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      print('📡 Forgot password request for: $email');
+      print('🔗 URL: $baseUrl/forgot-password');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/forgot-password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'email': email.toLowerCase()}),
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Forgot password response status: ${response.statusCode}');
+      print('📥 Forgot password response body: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+
+      return {
+        'success': response.statusCode == 200,
+        'message': data['message'] ?? 'If the email exists, a reset link has been sent',
+      };
+    } catch (e) {
+      print('❌ Forgot password error: $e');
+      if (e.toString().contains('SocketException')) {
+        return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
+      }
+      if (e.toString().contains('Timeout')) {
+        return {'success': false, 'message': 'Connection timeout. Server is not responding'};
+      }
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // ==================== VERIFY RESET TOKEN ====================
+  Future<Map<String, dynamic>> verifyResetToken(String token) async {
+    try {
+      print('📡 Verifying reset token');
+      print('🔗 URL: $baseUrl/verify-reset-token');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/verify-reset-token'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'token': token}),
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Verify reset token response status: ${response.statusCode}');
+      print('📥 Verify reset token response body: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'user': data['user'],
+          'message': data['message'] ?? 'Token is valid',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Invalid or expired token',
+        };
+      }
+    } catch (e) {
+      print('❌ Verify reset token error: $e');
+      if (e.toString().contains('SocketException')) {
+        return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
+      }
+      if (e.toString().contains('Timeout')) {
+        return {'success': false, 'message': 'Connection timeout. Server is not responding'};
+      }
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // ==================== RESET PASSWORD ====================
+  Future<Map<String, dynamic>> resetPassword(String token, String newPassword) async {
+    try {
+      print('📡 Resetting password');
+      print('🔗 URL: $baseUrl/reset-password');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/reset-password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'token': token,
+          'newPassword': newPassword,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Reset password response status: ${response.statusCode}');
+      print('📥 Reset password response body: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+
+      return {
+        'success': response.statusCode == 200,
+        'message': data['message'] ?? 'Password reset successful',
+      };
+    } catch (e) {
+      print('❌ Reset password error: $e');
+      if (e.toString().contains('SocketException')) {
+        return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
+      }
+      if (e.toString().contains('Timeout')) {
+        return {'success': false, 'message': 'Connection timeout. Server is not responding'};
+      }
       return {'success': false, 'message': 'Network error: $e'};
     }
   }

@@ -84,6 +84,50 @@ exports.sendWelcomeEmail = async (to, username) => {
 };
 
 /**
+ * Send password reset OTP email
+ */
+exports.sendPasswordResetEmail = async (to, otp, username) => {
+  console.log(`📧 Sending password reset OTP ${otp} to: ${to}`);
+
+  const mailOptions = {
+    from: '"WellNexus Health" <wellnexus10@gmail.com>',
+    to: to,
+    subject: `${otp} is your WellNexus password reset code`,
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #2196F3; margin: 0;">WellNexus</h1>
+          <p style="color: #666; font-size: 14px;">Your Health Companion</p>
+        </div>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
+          <h2 style="color: #333; margin-top: 0;">Reset Your Password</h2>
+          <p style="color: #555;">Hello ${username}, use the code below to reset your password:</p>
+          <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2196F3; margin: 20px 0; padding: 10px; background: #fff; border: 1px dashed #2196F3; display: inline-block;">
+            ${otp}
+          </div>
+          <p style="color: #888; font-size: 12px;">This code will expire in 1 hour.</p>
+        </div>
+        <p style="color: #666; font-size: 13px; margin-top: 20px;">
+          If you didn't request this password reset, please ignore this email.
+          Your password will not be changed.
+        </p>
+      </div>
+    `,
+    text: `Hello ${username},\n\nWe received a request to reset your WellNexus password.\n\nYour reset code is: ${otp}\n\nThis code will expire in 1 hour.\n\nIf you didn't request this, please ignore this email.`
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Password reset email sent successfully! Message ID: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Password reset email error:', error);
+    console.error('Error details:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Test email configuration
  * @returns {Promise<Object>} - Test result
  */

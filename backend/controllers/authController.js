@@ -484,3 +484,195 @@ exports.testEmail = async (req, res) => {
     });
   }
 };
+
+// ==================== FORGOT PASSWORD ====================
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  
+  console.log("🔐 Forgot password request for email:", email);
+  
+  if (!email) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Email is required" 
+    });
+  }
+  
+  try {
+    // Check if user exists and is verified
+    const result = await pool.query(
+      "SELECT user_id, username, email, email_verified FROM users WHERE email = $1",
+      [email.toLowerCase()]
+    );
+    
+    if (result.rows.length === 0) {
+      // For security, don't reveal if email exists or not
+      return res.json({ 
+        success: true, 
+        message: "If the email exists, a password reset link has been sent." 
+      });
+    }
+    
+    const user = result.rows[0];
+    
+    if (!user.email_verified) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Please verify your email first before resetting password." 
+      });
+    }
+    
+    // Generate reset token (using crypto for secure random token)
+    const crypto = require('crypto');
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    
+    // Store reset token in database (reuse verification_token fields)
+    await pool.query(
+      "UPDATE users SET verification_token = $1, verification_token_expires = $2 WHERE user_id = $3",
+      [resetToken, resetTokenExpiry, user.user_id]
+    );
+    
+    // Send password reset email
+    const emailResult = await emailService.sendPasswordResetEmail(
+      user.email, 
+      resetToken, 
+      user.username
+    );
+    
+    if (!emailResult.success) {
+      console.error("❌ Failed to send password reset email:", emailResult.error);
+      return res.status(500).json({ 
+        success: false, 
+        message: "Failed to send password reset email. Please try again.",
+        error: emailResult.error 
+      });
+    }
+    
+    console.log("✅ Password reset email sent to:", email);
+    res.json({ 
+      success: true, 
+      message: "If the email exists, a password reset link has been sent." 
+    });
+    
+  } catch (err) {
+    console.error("❌ Forgot password error:", err.message);
+    console.error("Stack:", err.stack);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error: " + err.message 
+    });
+  }
+};
+
+// ==================== VERIFY RESET TOKEN ====================
+exports.verifyResetToken = async (req, res) => {
+  const { token } = req.body;
+  
+  console.log("🔐 Verifying reset token:", token ? token.substring(0, 10) + '...' : 'missing');
+  
+  if (!token) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Reset token is required" 
+    });
+  }
+  
+  try {
+    // Check if token exists and is not expired
+    const result = await pool.query(
+      "SELECT user_id, username, email, verification_token, verification_token_expires FROM users WHERE verification_token = $1 AND verification_token_expires > $2",
+      [token, new Date()]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid or expired reset token" 
+      });
+    }
+    
+    const user = result.rows[0];
+    
+    res.json({ 
+      success: true, 
+      message: "Token is valid",
+      user: {
+        user_id: user.user_id,
+        username: user.username,
+        email: user.email
+      }
+    });
+    
+  } catch (err) {
+    console.error("❌ Verify reset token error:", err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error: " + err.message 
+    });
+  }
+};
+
+// ==================== RESET PASSWORD ====================
+exports.resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+  
+  console.log("🔐 Reset password request");
+  
+  if (!token || !newPassword) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Token and new password are required" 
+    });
+  }
+  
+  try {
+    // Validate password strength
+    const passwordValidation = Validators.validatePassword(newPassword);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ 
+        success: false, 
+        message: passwordValidation.message 
+      });
+    }
+    
+    // Check if token exists and is not expired
+    const result = await pool.query(
+      "SELECT user_id FROM users WHERE verification_token = $1 AND verification_token_expires > $2",
+      [token, new Date()]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid or expired reset token" 
+      });
+    }
+    
+    const userId = result.rows[0].user_id;
+    
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    // Update password and clear reset token
+    await pool.query(
+      "UPDATE users SET password_hash = $1, verification_token = NULL, verification_token_expires = NULL WHERE user_id = $2",
+      [hashedPassword, userId]
+    );
+    
+    console.log("✅ Password reset successful for user ID:", userId);
+    res.json({ 
+      success: true, 
+      message: "Password reset successful. You can now login with your new password." 
+    });
+    
+  } catch (err) {
+    console.error("❌ Reset password error:", err.message);
+    console.error("Stack:", err.stack);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error: " + err.message 
+    });
+  }
+};

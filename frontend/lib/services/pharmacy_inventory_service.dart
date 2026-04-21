@@ -107,4 +107,8 @@ class PharmacyInventoryService {
   Future<Map<String, dynamic>> deleteStock(int stockId) async {
     return await _request('DELETE', '/pharmacy-stock/$stockId');
   }
+
+  Future<Map<String, dynamic>> getLowStock(int pharmacyId, {int threshold = 10}) async {
+    return await _request('GET', '/pharmacy-stock/$pharmacyId/low-stock?threshold=$threshold');
+  }
 }
