@@ -697,7 +697,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     labelText: 'Price',
-                    prefixText: '\$ ',
+                    prefixText: 'LKR ',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
@@ -1255,7 +1255,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          '\$${variant['price']?.toString() ?? 'N/A'}',
+                                          'LKR:- ${variant['price']?.toString() ?? 'N/A'}',
                                           style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w600),
                                         ),
                                       ],

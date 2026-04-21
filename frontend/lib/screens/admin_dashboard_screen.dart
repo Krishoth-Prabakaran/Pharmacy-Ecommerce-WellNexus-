@@ -29,8 +29,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
     'Patients',
     'Doctors',
     'Pharmacies',
-    'Appointments',
-    'Prescriptions',
     'Orders',
   ];
 
@@ -364,9 +362,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
       case 2: return Icons.local_hospital;
       case 3: return Icons.medical_services;
       case 4: return Icons.store;
-      case 5: return Icons.event;
-      case 6: return Icons.medication;
-      case 7: return Icons.shopping_cart;
+      case 5: return Icons.shopping_cart;
       default: return Icons.dashboard;
     }
   }
@@ -392,10 +388,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
       case 4:
         return const PharmaciesManagementView();
       case 5:
-        return const AppointmentsManagementView();
-      case 6:
-        return const PrescriptionsManagementView();
-      case 7:
         return const OrdersManagementView();
       default:
         return _buildDashboardView();
@@ -635,16 +627,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
           const Color(0xFFF59E0B),
         ),
         _buildStatCard(
-          '${_stats!['totalAppointments'] ?? 0}',
-          'Appointments',
-          Icons.event,
+          '${_stats!['totalOrders'] ?? 0}',
+          'Orders',
+          Icons.shopping_cart,
           const Color(0xFFEC4899),
-        ),
-        _buildStatCard(
-          '${_stats!['totalPrescriptions'] ?? 0}',
-          'Prescriptions',
-          Icons.medication,
-          const Color(0xFF06B6D4),
         ),
         _buildStatCard(
           'Rs. ${_stats!['totalRevenue']?.toStringAsFixed(0) ?? '0'}',
@@ -814,9 +800,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
 
   Color _getActivityColor(String type) {
     switch (type) {
-      case 'appointment':
+      case 'order':
         return const Color(0xFF6366F1);
-      case 'prescription':
+      case 'user':
         return const Color(0xFF10B981);
       default:
         return const Color(0xFF64748B);
@@ -825,10 +811,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
 
   IconData _getActivityIcon(String type) {
     switch (type) {
-      case 'appointment':
-        return Icons.event;
-      case 'prescription':
-        return Icons.medication;
+      case 'order':
+        return Icons.shopping_cart;
+      case 'user':
+        return Icons.person;
       default:
         return Icons.info;
     }
@@ -1537,270 +1523,6 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
           ),
       ],
     );
-  }
-}
-
-// ==================== APPOINTMENTS MANAGEMENT VIEW ====================
-class AppointmentsManagementView extends StatefulWidget {
-  const AppointmentsManagementView({super.key});
-
-  @override
-  State<AppointmentsManagementView> createState() => _AppointmentsManagementViewState();
-}
-
-class _AppointmentsManagementViewState extends State<AppointmentsManagementView> {
-  final AdminService _adminService = AdminService();
-  List<dynamic> _appointments = [];
-  bool _isLoading = true;
-  int _currentPage = 1;
-  int _totalPages = 1;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAppointments();
-  }
-
-  Future<void> _loadAppointments() async {
-    setState(() => _isLoading = true);
-    try {
-      final result = await _adminService.getAllAppointments(page: _currentPage);
-      setState(() {
-        _appointments = result['appointments'] ?? [];
-        _totalPages = result['pagination']['totalPages'] ?? 1;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Appointments Management',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF1E293B),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        if (_isLoading)
-          const Center(child: CircularProgressIndicator())
-        else if (_appointments.isEmpty)
-          const Center(child: Text('No appointments found'))
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _appointments.length,
-            separatorBuilder: (context, index) => const Divider(),
-            itemBuilder: (context, index) {
-              final appt = _appointments[index];
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: _getStatusColor(appt['status']),
-                  child: const Icon(Icons.event, color: Colors.white),
-                ),
-                title: Text(
-                  '${appt['patient_first_name'] ?? ''} ${appt['patient_last_name'] ?? ''} - Dr. ${appt['doctor_first_name'] ?? ''} ${appt['doctor_last_name'] ?? ''}',
-                ),
-                subtitle: Text(
-                  '${appt['appointment_date'] ?? ''} at ${appt['appointment_time'] ?? ''}',
-                ),
-                trailing: Chip(
-                  label: Text(
-                    appt['status'] ?? 'scheduled',
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                  backgroundColor: _getStatusColor(appt['status']),
-                ),
-              );
-            },
-          ),
-
-        if (!_isLoading && _totalPages > 1)
-          Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: _currentPage > 1
-                      ? () {
-                          setState(() => _currentPage--);
-                          _loadAppointments();
-                        }
-                      : null,
-                ),
-                Text('Page $_currentPage of $_totalPages'),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: _currentPage < _totalPages
-                      ? () {
-                          setState(() => _currentPage++);
-                          _loadAppointments();
-                        }
-                      : null,
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  Color _getStatusColor(String? status) {
-    switch (status) {
-      case 'scheduled':
-        return Colors.blue;
-      case 'confirmed':
-        return Colors.green;
-      case 'completed':
-        return Colors.grey;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
-  }
-}
-
-// ==================== PRESCRIPTIONS MANAGEMENT VIEW ====================
-class PrescriptionsManagementView extends StatefulWidget {
-  const PrescriptionsManagementView({super.key});
-
-  @override
-  State<PrescriptionsManagementView> createState() => _PrescriptionsManagementViewState();
-}
-
-class _PrescriptionsManagementViewState extends State<PrescriptionsManagementView> {
-  final AdminService _adminService = AdminService();
-  List<dynamic> _prescriptions = [];
-  bool _isLoading = true;
-  int _currentPage = 1;
-  int _totalPages = 1;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPrescriptions();
-  }
-
-  Future<void> _loadPrescriptions() async {
-    setState(() => _isLoading = true);
-    try {
-      final result = await _adminService.getAllPrescriptions(page: _currentPage);
-      setState(() {
-        _prescriptions = result['prescriptions'] ?? [];
-        _totalPages = result['pagination']['totalPages'] ?? 1;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Prescriptions Management',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF1E293B),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        if (_isLoading)
-          const Center(child: CircularProgressIndicator())
-        else if (_prescriptions.isEmpty)
-          const Center(child: Text('No prescriptions found'))
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _prescriptions.length,
-            separatorBuilder: (context, index) => const Divider(),
-            itemBuilder: (context, index) {
-              final rx = _prescriptions[index];
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.teal,
-                  child: const Icon(Icons.medication, color: Colors.white),
-                ),
-                title: Text(
-                  'Prescription #${rx['prescription_id']} - ${rx['patient_first_name'] ?? ''} ${rx['patient_last_name'] ?? ''}',
-                ),
-                subtitle: Text(
-                  'By Dr. ${rx['doctor_first_name'] ?? ''} ${rx['doctor_last_name'] ?? ''} on ${rx['prescription_date'] ?? ''}',
-                ),
-                trailing: Chip(
-                  label: Text(
-                    rx['status'] ?? 'active',
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                  backgroundColor: _getStatusColor(rx['status']),
-                ),
-              );
-            },
-          ),
-
-        if (!_isLoading && _totalPages > 1)
-          Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: _currentPage > 1
-                      ? () {
-                          setState(() => _currentPage--);
-                          _loadPrescriptions();
-                        }
-                      : null,
-                ),
-                Text('Page $_currentPage of $_totalPages'),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: _currentPage < _totalPages
-                      ? () {
-                          setState(() => _currentPage++);
-                          _loadPrescriptions();
-                        }
-                      : null,
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  Color _getStatusColor(String? status) {
-    switch (status) {
-      case 'active':
-        return Colors.green;
-      case 'filled':
-        return Colors.blue;
-      case 'expired':
-        return Colors.grey;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
   }
 }
 
