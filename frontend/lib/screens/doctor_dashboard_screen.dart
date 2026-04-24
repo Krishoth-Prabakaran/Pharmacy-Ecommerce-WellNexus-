@@ -105,16 +105,16 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   Container(
                     height: 220,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          const Color(0xFF6366F1),
-                          const Color(0xFF8B5CF6),
-                          const Color(0xFFEC4899),
-                          const Color(0xFFF59E0B),
+                          Color(0xFF6366F1),
+                          Color(0xFF8B5CF6),
+                          Color(0xFFEC4899),
+                          Color(0xFFF59E0B),
                         ],
-                        stops: const [0.0, 0.33, 0.66, 1.0],
+                        stops: [0.0, 0.33, 0.66, 1.0],
                       ),
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(30),
@@ -874,10 +874,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       ),
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.access_time,
                             size: 12,
-                            color: const Color(0xFF64748B),
+                            color: Color(0xFF64748B),
                           ),
                           const SizedBox(width: 4),
                           Text(

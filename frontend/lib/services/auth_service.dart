@@ -338,7 +338,7 @@ class AuthService {
       if (limit != null) params['limit'] = limit.toString();
 
       if (params.isNotEmpty) {
-        url += '?' + params.entries.map((e) => '${e.key}=${e.value}').join('&');
+        url += '?${params.entries.map((e) => '${e.key}=${e.value}').join('&')}';
       }
 
       print('📡 Getting appointments by doctor');

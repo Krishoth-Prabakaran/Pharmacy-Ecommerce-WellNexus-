@@ -96,16 +96,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             context: context,
             builder: (ctx) => AlertDialog(
               title: const Text('✅ Password Reset'),
-              content: Column(
+              content: const Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.check_circle_outline,
                     size: 64,
                     color: Colors.green,
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
+                  SizedBox(height: 16),
+                  Text(
                     'Your password has been reset successfully. You can now login with your new password.',
                     textAlign: TextAlign.center,
                   ),
@@ -421,7 +421,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                 ),
                 filled: true,
-                fillColor: Color(0xFFF9FAFB),
+                fillColor: const Color(0xFFF9FAFB),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -487,7 +487,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                 ),
                 filled: true,
-                fillColor: Color(0xFFF9FAFB),
+                fillColor: const Color(0xFFF9FAFB),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {

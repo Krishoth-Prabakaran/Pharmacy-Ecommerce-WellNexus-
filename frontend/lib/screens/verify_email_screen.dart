@@ -323,7 +323,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           filled: true,
-          fillColor: Color(0xFFF9FAFB),
+          fillColor: const Color(0xFFF9FAFB),
         ),
         onChanged: (value) {
           if (value.isNotEmpty && index < 5) {

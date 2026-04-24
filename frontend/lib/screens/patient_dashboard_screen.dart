@@ -102,10 +102,10 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 child: Row(
                   children: [
-                    Expanded(
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
                             'Medicine Store',
                             style: TextStyle(
@@ -367,8 +367,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
                   colors: [Color(0xFFFCD34D), Color(0xFFFFB84D)],
                 ),
                 shape: BoxShape.circle,

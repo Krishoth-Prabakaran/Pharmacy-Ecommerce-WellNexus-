@@ -255,7 +255,7 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
 
                           // Gender
                           DropdownButtonFormField<String>(
-                            value: _selectedGender,
+                            initialValue: _selectedGender,
                             decoration: const InputDecoration(
                               labelText: 'Gender (Optional)',
                               border: OutlineInputBorder(),

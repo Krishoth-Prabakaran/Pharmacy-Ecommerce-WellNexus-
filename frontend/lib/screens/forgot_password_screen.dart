@@ -48,21 +48,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             context: context,
             builder: (ctx) => AlertDialog(
               title: const Text('📧 Email Sent'),
-              content: Column(
+              content: const Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.mark_email_read_outlined,
                     size: 64,
                     color: Colors.green,
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
+                  SizedBox(height: 16),
+                  Text(
                     'If an account exists with this email, you will receive a password reset link shortly.',
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
+                  SizedBox(height: 16),
+                  Text(
                     'Please check your inbox and spam folder.',
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                     textAlign: TextAlign.center,
@@ -253,7 +253,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               ),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateEmail(value);
