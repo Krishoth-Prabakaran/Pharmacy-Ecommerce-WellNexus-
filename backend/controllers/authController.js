@@ -509,7 +509,7 @@ exports.forgotPassword = async (req, res) => {
       // For security, don't reveal if email exists or not
       return res.json({ 
         success: true, 
-        message: "If the email exists, a password reset link has been sent." 
+        message: "If the email exists, an OTP has been sent." 
       });
     }
     
@@ -522,37 +522,37 @@ exports.forgotPassword = async (req, res) => {
       });
     }
     
-    // Generate reset token (using crypto for secure random token)
-    const crypto = require('crypto');
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    // Generate OTP (like email verification)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 hour
     
-    // Store reset token in database (reuse verification_token fields)
+    // Store OTP in database (reuse verification_token fields)
     await pool.query(
       "UPDATE users SET verification_token = $1, verification_token_expires = $2 WHERE user_id = $3",
-      [resetToken, resetTokenExpiry, user.user_id]
+      [otp, otpExpires, user.user_id]
     );
     
-    // Send password reset email
-    const emailResult = await emailService.sendPasswordResetEmail(
+    // Send password reset OTP email (reuse verification email)
+    const emailResult = await emailService.sendVerificationEmail(
       user.email, 
-      resetToken, 
+      otp, 
       user.username
     );
     
     if (!emailResult.success) {
-      console.error("❌ Failed to send password reset email:", emailResult.error);
+      console.error("❌ Failed to send password reset OTP email:", emailResult.error);
       return res.status(500).json({ 
         success: false, 
-        message: "Failed to send password reset email. Please try again.",
+        message: "Failed to send OTP email. Please try again.",
         error: emailResult.error 
       });
     }
     
-    console.log("✅ Password reset email sent to:", email);
+    console.log("✅ Password reset OTP sent to:", email);
     res.json({ 
       success: true, 
-      message: "If the email exists, a password reset link has been sent." 
+      message: "If the email exists, an OTP has been sent.",
+      email: email
     });
     
   } catch (err) {
@@ -609,6 +609,68 @@ exports.verifyResetToken = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: "Server error: " + err.message 
+    });
+  }
+};
+
+// ==================== VERIFY PASSWORD RESET OTP ====================
+exports.verifyPasswordResetOtp = async (req, res) => {
+  const { email, otp } = req.body;
+  
+  console.log("🔐 Verifying password reset OTP for email:", email, "OTP:", otp);
+  
+  if (!email || !otp) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Email and OTP are required" 
+    });
+  }
+  
+  try {
+    // Check if user exists and OTP is valid
+    const result = await pool.query(
+      "SELECT user_id, username, email, verification_token, verification_token_expires FROM users WHERE email = $1 AND verification_token = $2 AND verification_token_expires > $3",
+      [email.toLowerCase(), otp, new Date()]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid or expired OTP" 
+      });
+    }
+    
+    const user = result.rows[0];
+    
+    // Generate a temporary reset token
+    const crypto = require('crypto');
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    
+    // Update with reset token (clear OTP)
+    await pool.query(
+      "UPDATE users SET verification_token = $1, verification_token_expires = $2 WHERE user_id = $3",
+      [resetToken, resetTokenExpiry, user.user_id]
+    );
+    
+    console.log("✅ Password reset OTP verified for:", email);
+    
+    res.json({
+      success: true,
+      message: "OTP verified successfully",
+      reset_token: resetToken,
+      user: { 
+        user_id: user.user_id, 
+        username: user.username, 
+        email: user.email 
+      }
+    });
+  } catch (err) {
+    console.error("❌ Verify password reset OTP error:", err.message);
+    console.error("Stack:", err.stack);
+    res.status(500).json({ 
+      success: false, 
+      message: "Verification failed: " + err.message 
     });
   }
 };

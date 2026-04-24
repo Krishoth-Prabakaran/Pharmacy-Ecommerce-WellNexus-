@@ -504,6 +504,53 @@ class AuthService {
     }
   }
 
+  // ==================== VERIFY PASSWORD RESET OTP ====================
+  Future<Map<String, dynamic>> verifyPasswordResetOtp(String email, String otp) async {
+    try {
+      print('📡 Verifying password reset OTP for: $email with code: $otp');
+      print('🔗 URL: $baseUrl/verify-password-reset-otp');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/verify-password-reset-otp'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email.toLowerCase(),
+          'otp': otp,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Verify password reset OTP response status: ${response.statusCode}');
+      print('📥 Verify password reset OTP response body: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true, 
+          'reset_token': data['reset_token'],
+          'user': data['user']
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Invalid or expired OTP',
+        };
+      }
+    } catch (e) {
+      print('❌ Verification error: $e');
+      if (e.toString().contains('SocketException')) {
+        return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
+      }
+      if (e.toString().contains('Timeout')) {
+        return {'success': false, 'message': 'Connection timeout. Server is not responding'};
+      }
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
   // ==================== VERIFY RESET TOKEN ====================
   Future<Map<String, dynamic>> verifyResetToken(String token) async {
     try {

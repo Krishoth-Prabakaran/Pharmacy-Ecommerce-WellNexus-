@@ -1,9 +1,11 @@
 // screens/pharmacy_register_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import '../services/pharmacy_service.dart';
 import '../utils/validators.dart';
 import 'login_screen.dart';
+import 'map_picker_screen.dart';
 
 class PharmacyRegisterScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -122,6 +124,43 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
         duration: const Duration(seconds: 3),
       ),
     );
+  }
+
+  void _openMapPicker() async {
+    late final LatLng? initialLocation;
+    
+    // If coordinates already exist, use them as initial location
+    if (_latitudeController.text.isNotEmpty && _longitudeController.text.isNotEmpty) {
+      try {
+        final lat = double.parse(_latitudeController.text);
+        final lng = double.parse(_longitudeController.text);
+        initialLocation = LatLng(lat, lng);
+      } catch (e) {
+        initialLocation = null;
+      }
+    } else {
+      initialLocation = null;
+    }
+
+    // Navigate to map picker and get selected location
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MapPickerScreen(
+            initialLocation: initialLocation,
+            onLocationSelected: (location, address) {
+              setState(() {
+                _latitudeController.text = location.latitude.toString();
+                _longitudeController.text = location.longitude.toString();
+                _addressController.text = address;
+              });
+              _showSnackBar('Location selected successfully!', Colors.green);
+            },
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -361,6 +400,25 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                           validator: (value) {
                             return Validators.validatePhoneNumber(value);
                           },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Map Picker Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _openMapPicker,
+                            icon: const Icon(Icons.location_on_outlined),
+                            label: const Text('Select Location on Map'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6366F1),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 16),
 

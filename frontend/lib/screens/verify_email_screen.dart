@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import 'patient_register_screen.dart';
 import 'pharmacy_register_screen.dart';
 import 'doctor_register_screen.dart';
+import 'reset_password_screen.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -45,13 +46,22 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     });
 
     try {
-      final result = await AuthService().verifyOtp(
-        widget.userData['email'],
-        otp,
-      );
+      final result = widget.userData['isPasswordReset'] == true
+          ? await AuthService().verifyPasswordResetOtp(widget.userData['email'], otp)
+          : await AuthService().verifyOtp(widget.userData['email'], otp);
 
       if (result['success']) {
-        if (mounted) _navigateBasedOnRole(result['user']);
+        if (widget.userData['isPasswordReset'] == true) {
+          // Navigate to reset password screen with the reset token
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ResetPasswordScreen(token: result['reset_token'])
+            ),
+          );
+        } else {
+          if (mounted) _navigateBasedOnRole(result['user']);
+        }
       } else {
         setState(() => _errorMessage = result['message'] ?? "Invalid OTP");
       }
@@ -141,9 +151,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     shaderCallback: (bounds) => const LinearGradient(
                       colors: [Colors.white, Color(0xFFE0E7FF)],
                     ).createShader(bounds),
-                    child: const Text(
-                      'Verify Your Email',
-                      style: TextStyle(
+                    child: Text(
+                      widget.userData['isPasswordReset'] == true ? 'Verify Password Reset' : 'Verify Your Email',
+                      style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
@@ -154,7 +164,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Enter the 6-digit code sent to\n${widget.userData['email']}',
+                    widget.userData['isPasswordReset'] == true
+                        ? 'Enter the 6-digit code sent to\n${widget.userData['email']}\nto reset your password'
+                        : 'Enter the 6-digit code sent to\n${widget.userData['email']}',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 15,
