@@ -18,7 +18,10 @@ const adminAuth = (req, res, next) => {
 
   try {
     const jwt = require('jsonwebtoken');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is not configured');
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Check if user is admin
     if (decoded.role !== 'admin') {

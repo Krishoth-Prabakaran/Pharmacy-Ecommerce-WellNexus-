@@ -56,7 +56,9 @@ exports.register = async (req, res) => {
       [email, username]
     );
     
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate cryptographically secure OTP
+    const crypto = require('crypto');
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     if (userExists.rows.length > 0) {
@@ -212,9 +214,12 @@ exports.verifyEmail = async (req, res) => {
     );
 
     // Generate JWT token
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is not configured');
+    }
     const token = jwt.sign(
       { id: user.user_id, role: user.role }, 
-      process.env.JWT_SECRET || 'secret', 
+      process.env.JWT_SECRET, 
       { expiresIn: "1d" }
     );
 
@@ -298,9 +303,12 @@ exports.login = async (req, res) => {
       });
     }
 
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is not configured');
+    }
     const token = jwt.sign(
       { id: user.user_id, role: user.role }, 
-      process.env.JWT_SECRET || 'secret', 
+      process.env.JWT_SECRET, 
       { expiresIn: "1d" }
     );
     
@@ -360,8 +368,9 @@ exports.resendVerification = async (req, res) => {
       });
     }
     
-    // Generate new OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate new OTP (cryptographically secure)
+    const crypto = require('crypto');
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     
     // Update user with new OTP
@@ -522,8 +531,9 @@ exports.forgotPassword = async (req, res) => {
       });
     }
     
-    // Generate OTP (like email verification)
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate OTP (cryptographically secure) for password reset
+    const crypto = require('crypto');
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 hour
     
     // Store OTP in database (reuse verification_token fields)

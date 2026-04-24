@@ -50,6 +50,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
           ? await AuthService().verifyPasswordResetOtp(widget.userData['email'], otp)
           : await AuthService().verifyOtp(widget.userData['email'], otp);
 
+      if (!mounted) return;
+
       if (result['success']) {
         if (widget.userData['isPasswordReset'] == true) {
           // Navigate to reset password screen with the reset token
@@ -73,6 +75,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   }
 
   void _navigateBasedOnRole(Map<String, dynamic> user) {
+    if (!mounted) return;
+    
     if (user['role'] == 'patient') {
       Navigator.pushReplacement(
         context, 

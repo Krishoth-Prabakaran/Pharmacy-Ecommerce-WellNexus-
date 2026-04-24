@@ -1,5 +1,4 @@
 // backend/server.js
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -41,8 +40,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Add size limits to prevent DoS attacks
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // Request logging middleware
 app.use((req, res, next) => {
