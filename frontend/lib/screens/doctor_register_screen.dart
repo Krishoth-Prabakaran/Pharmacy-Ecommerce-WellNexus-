@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/doctor_service.dart';
+import '../utils/validators.dart';
 import 'login_screen.dart';
 
 class DoctorRegisterScreen extends StatefulWidget {
@@ -98,6 +99,12 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
+      if (widget.userData['user_id'] == null) {
+        _showSnackBar('Unable to complete registration without verified user_id', Colors.red);
+        setState(() => _isLoading = false);
+        return;
+      }
+
       final doctorData = {
         'first_name': _firstNameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
@@ -114,9 +121,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
         'available_to': _formatTimeOfDay(_availableTo),
         'education': _educationController.text.trim(),
         'clinic_address': _clinicAddressController.text.trim(),
-        'username': widget.userData['username'],
-        'email': widget.userData['email'],
-        'password': widget.userData['password'],
+        'user_id': widget.userData['user_id'],
       };
 
       final result = await DoctorService().registerDoctor(doctorData);
@@ -153,394 +158,582 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Register Doctor'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(15),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF6366F1),
+              Color(0xFF8B5CF6),
+              Color(0xFFEC4899),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 20),
+
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Colors.white, Color(0xFFE0E7FF)],
+                    ).createShader(bounds),
+                    child: const Text(
+                      'Professional Details',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.medical_services,
-                      size: 60,
-                      color: Colors.blue,
+                const SizedBox(height: 8),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Share your expertise with patients',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFFE0E7FF),
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Welcome, ${widget.userData['username']}!',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      'Please provide your professional details',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 30),
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    // First Name
-                    TextFormField(
-                      controller: _firstNameController,
-                      decoration: InputDecoration(
-                        labelText: 'First Name *',
-                        prefixIcon: const Icon(Icons.person),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                const SizedBox(height: 30),
+
+                // Welcome Card
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFFFFF), Color(0xFFF0F4FF)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                          ),
+                          shape: BoxShape.circle,
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2),
+                        child: const Icon(
+                          Icons.medical_services,
+                          size: 40,
+                          color: Colors.white,
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter first name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Last Name
-                    TextFormField(
-                      controller: _lastNameController,
-                      decoration: InputDecoration(
-                        labelText: 'Last Name *',
-                        prefixIcon: const Icon(Icons.person),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Welcome, ${widget.userData['username']}!',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1F2937),
+                          letterSpacing: 0.3,
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter last name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Specialization
-                    DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: 'Specialization *',
-                        prefixIcon: const Icon(Icons.medical_services),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Complete your professional profile',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      initialValue: _specializationController.text.isNotEmpty 
-                          ? _specializationController.text 
-                          : null,
-                      items: _specializations.map((spec) {
-                        return DropdownMenuItem<String>(
-                          value: spec,
-                          child: Text(spec),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _specializationController.text = newValue ?? '';
-                        });
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select specialization';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
 
-                    // License Number
-                    TextFormField(
-                      controller: _licenseNumberController,
-                      decoration: InputDecoration(
-                        labelText: 'License Number *',
-                        prefixIcon: const Icon(Icons.badge),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2),
-                        ),
+                const SizedBox(height: 28),
+
+                // Form Card
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 30,
+                        offset: const Offset(0, 15),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter license number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Phone Number
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number *',
-                        prefixIcon: const Icon(Icons.phone),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter phone number';
-                        }
-                        if (value.length < 10) {
-                          return 'Enter a valid phone number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Consultation Fee
-                    TextFormField(
-                      controller: _consultationFeeController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Consultation Fee (₹)',
-                        prefixIcon: const Icon(Icons.currency_rupee),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Experience Years
-                    TextFormField(
-                      controller: _experienceYearsController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Experience (Years)',
-                        prefixIcon: const Icon(Icons.timeline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Available Time
-                    Row(
+                    ],
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => _selectTime(context, true),
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: 'Available From',
-                                prefixIcon: const Icon(Icons.access_time),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    _availableFrom == null
-                                        ? 'Select'
-                                        : _availableFrom!.format(context),
-                                    style: TextStyle(
-                                      color: _availableFrom == null
-                                          ? Colors.grey.shade600
-                                          : Colors.black,
-                                    ),
-                                  ),
-                                  const Icon(Icons.arrow_drop_down),
-                                ],
-                              ),
+                        // First Name
+                        TextFormField(
+                          controller: _firstNameController,
+                          decoration: InputDecoration(
+                            labelText: 'First Name',
+                            labelStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontWeight: FontWeight.w600,
                             ),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 12),
+                              child: Icon(Icons.person_outline, color: Colors.grey[400]),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                          ),
+                          validator: (value) {
+                            return Validators.validateName(value, fieldName: 'First name');
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Last Name
+                        TextFormField(
+                          controller: _lastNameController,
+                          decoration: InputDecoration(
+                            labelText: 'Last Name',
+                            labelStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 12),
+                              child: Icon(Icons.person_outline, color: Colors.grey[400]),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                          ),
+                          validator: (value) {
+                            return Validators.validateName(value, fieldName: 'Last name');
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Specialization
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[300]!, width: 1.5),
+                            color: const Color(0xFFF9FAFB),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            decoration: InputDecoration(
+                              labelText: 'Specialization',
+                              labelStyle: const TextStyle(
+                                color: Color(0xFF9CA3AF),
+                                fontWeight: FontWeight.w600,
+                              ),
+                              prefixIcon: Padding(
+                                padding: const EdgeInsets.only(left: 16, right: 12),
+                                child: Icon(Icons.medical_services_outlined, color: Colors.grey[400]),
+                              ),
+                              prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            hint: const Text('Select specialization'),
+                            initialValue: _specializationController.text.isNotEmpty 
+                                ? _specializationController.text 
+                                : null,
+                            items: _specializations.map((spec) {
+                              return DropdownMenuItem<String>(
+                                value: spec,
+                                child: Text(spec, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                _specializationController.text = newValue ?? '';
+                              });
+                            },
+                            validator: (value) {
+                              return Validators.validateSpecialization(value);
+                            },
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => _selectTime(context, false),
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: 'Available To',
-                                prefixIcon: const Icon(Icons.access_time),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                        const SizedBox(height: 16),
+
+                        // License Number
+                        TextFormField(
+                          controller: _licenseNumberController,
+                          decoration: InputDecoration(
+                            labelText: 'License Number',
+                            labelStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 12),
+                              child: Icon(Icons.badge_outlined, color: Colors.grey[400]),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                          ),
+                          validator: (value) {
+                            return Validators.validateLicenseNumber(value);
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Phone Number
+                        TextFormField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            labelText: 'Phone Number',
+                            labelStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            hintText: '0XXXXXXXXX or +94XXXXXXXXX',
+                            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 12),
+                              child: Icon(Icons.phone_outlined, color: Colors.grey[400]),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                          ),
+                          validator: (value) {
+                            return Validators.validatePhoneNumber(value);
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Consultation Fee
+                        TextFormField(
+                          controller: _consultationFeeController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Consultation Fee (₹)',
+                            labelStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 12),
+                              child: Icon(Icons.currency_rupee_rounded, color: Colors.grey[400]),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                          ),
+                          validator: (value) {
+                            return Validators.validateConsultationFee(value);
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Experience Years
+                        TextFormField(
+                          controller: _experienceYearsController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Experience (Years)',
+                            labelStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 12),
+                              child: Icon(Icons.work_history_outlined, color: Colors.grey[400]),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Available Time Slots
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _selectTime(context, true),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: const Color(0xFFF9FAFB),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.access_time_outlined, color: Colors.grey[400], size: 20),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          _availableFrom == null
+                                              ? 'From'
+                                              : _availableFrom!.format(context),
+                                          style: TextStyle(
+                                            color: _availableFrom == null ? Colors.grey[500] : Colors.grey[800],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    _availableTo == null
-                                        ? 'Select'
-                                        : _availableTo!.format(context),
-                                    style: TextStyle(
-                                      color: _availableTo == null
-                                          ? Colors.grey.shade600
-                                          : Colors.black,
-                                    ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _selectTime(context, false),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: const Color(0xFFF9FAFB),
                                   ),
-                                  const Icon(Icons.arrow_drop_down),
-                                ],
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.access_time_outlined, color: Colors.grey[400], size: 20),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          _availableTo == null
+                                              ? 'To'
+                                              : _availableTo!.format(context),
+                                          style: TextStyle(
+                                            color: _availableTo == null ? Colors.grey[500] : Colors.grey[800],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Education
+                        TextFormField(
+                          controller: _educationController,
+                          maxLines: 2,
+                          decoration: InputDecoration(
+                            labelText: 'Education (Optional)',
+                            labelStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 12),
+                              child: Icon(Icons.school_outlined, color: Colors.grey[400]),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Clinic Address
+                        TextFormField(
+                          controller: _clinicAddressController,
+                          maxLines: 2,
+                          decoration: InputDecoration(
+                            labelText: 'Clinic Address (Optional)',
+                            labelStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 12),
+                              child: Icon(Icons.location_on_outlined, color: Colors.grey[400]),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+
+                        // Register Button
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF6366F1),
+                                Color(0xFF8B5CF6),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF6366F1).withOpacity(0.4),
+                                blurRadius: 15,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: _isLoading ? null : _registerDoctor,
+                              borderRadius: BorderRadius.circular(12),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: _isLoading
+                                    ? const Center(
+                                        child: SizedBox(
+                                          height: 24,
+                                          width: 24,
+                                          child: CircularProgressIndicator(
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            strokeWidth: 2.5,
+                                          ),
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Register Doctor',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                          letterSpacing: 0.5,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
                               ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-
-                    // Education
-                    TextFormField(
-                      controller: _educationController,
-                      maxLines: 2,
-                      decoration: InputDecoration(
-                        labelText: 'Education',
-                        prefixIcon: const Icon(Icons.school),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Clinic Address
-                    TextFormField(
-                      controller: _clinicAddressController,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        labelText: 'Clinic Address',
-                        prefixIcon: const Icon(Icons.location_on),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : ElevatedButton(
-                            onPressed: _registerDoctor,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(double.infinity, 50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: const Text(
-                              'Register Doctor',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),

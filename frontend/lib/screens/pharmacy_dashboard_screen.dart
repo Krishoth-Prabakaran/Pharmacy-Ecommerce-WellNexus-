@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import '../services/auth_service.dart';
 import '../services/pharmacy_service.dart';
 import '../services/pharmacy_inventory_service.dart';
+import '../widgets/map_location_picker.dart';
+import 'low_stock_notification_screen.dart';
+import 'pharmacy_sales_screen.dart';
 
 class PharmacyDashboardScreen extends StatefulWidget {
   const PharmacyDashboardScreen({super.key, this.pharmacy});
@@ -12,7 +16,7 @@ class PharmacyDashboardScreen extends StatefulWidget {
   State<PharmacyDashboardScreen> createState() => _PharmacyDashboardScreenState();
 }
 
-class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
+class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with SingleTickerProviderStateMixin {
   final PharmacyInventoryService _inventoryService = PharmacyInventoryService();
   final PharmacyService _pharmacyService = PharmacyService();
   bool _isLoading = true;
@@ -21,14 +25,23 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
   List<Map<String, dynamic>> _medicines = [];
   List<Map<String, dynamic>> _dealers = [];
   List<Map<String, dynamic>> _stock = [];
+  List<Map<String, dynamic>> _branches = [];
   final Map<int, List<Map<String, dynamic>>> _variantsByMedicine = {};
   String _medicineSearchQuery = '';
   String _dealerSearchQuery = '';
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 5, vsync: this);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -59,6 +72,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
 
     _pharmacy = Map<String, dynamic>.from(pharmacyResult['pharmacy']);
     await _loadInventory();
+    await _loadBranches();
 
     setState(() {
       _isLoading = false;
@@ -104,17 +118,56 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
     });
   }
 
+  Future<void> _loadBranches() async {
+    if (_pharmacy == null) return;
+
+    final branchesResult = await _pharmacyService.getBranches(_pharmacy!['pharmacy_id']);
+    setState(() {
+      _branches = branchesResult['success'] == true
+          ? List<Map<String, dynamic>>.from(branchesResult['branches'] ?? [])
+          : [];
+    });
+  }
+
   Future<void> _logout() async {
-    await AuthService.logout();
-    if (context.mounted) {
-      Navigator.pushReplacementNamed(context, '/login');
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+    
+    if (shouldLogout == true) {
+      await AuthService.logout();
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     }
   }
 
   void _showSnackBar(String message, Color color) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color, duration: const Duration(seconds: 3)),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
@@ -124,11 +177,21 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1F2937),
+            ),
+          ),
           if (subtitle != null) ...[
-            const SizedBox(height: 6),
-            Text(subtitle, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-          ]
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+          ],
         ],
       ),
     );
@@ -136,20 +199,43 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Expanded(
-      child: Card(
-        color: color.withOpacity(0.1),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        elevation: 2,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [color.withOpacity(0.15), color.withOpacity(0.05)],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.3), width: 1),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: color, size: 28),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
               const SizedBox(height: 12),
-              Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-              const SizedBox(height: 8),
-              Text(label, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              ),
             ],
           ),
         ),
@@ -158,19 +244,32 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
   }
 
   Widget _buildSearchBar({required String hint, required ValueChanged<String> onChanged}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14.0),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: TextField(
         onChanged: onChanged,
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.search),
+          prefixIcon: const Icon(Icons.search, color: Color(0xFF9CA3AF)),
           hintText: hint,
-          filled: true,
-          fillColor: Colors.grey.shade100,
+          hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
+          filled: true,
+          fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         ),
       ),
@@ -185,39 +284,68 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadInventory,
+      color: const Color(0xFF6366F1),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Card(
+            // Welcome Card
+            Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              elevation: 4,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF2196F3), Color(0xFF42A5F5)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6366F1).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Welcome back, Pharmacist!', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    Text(
-                      _pharmacy?['pharmacy_name'] ?? 'Your Pharmacy',
-                      style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(Icons.location_on, color: Colors.white70),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.local_pharmacy, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Welcome back, Pharmacist!',
+                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      _pharmacy?['pharmacy_name'] ?? 'Your Pharmacy',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on, color: Colors.white70, size: 18),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -227,11 +355,77 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 20),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _buildInfoChip(Icons.access_time, 'Open: ${_pharmacy?['open_time'] ?? 'N/A'}'),
+                        _buildInfoChip(Icons.access_time_filled, 'Close: ${_pharmacy?['close_time'] ?? 'N/A'}'),
+                        _buildInfoChip(Icons.phone, _pharmacy?['phone'] ?? 'No phone'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Stats Row 1
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _buildStatCard('Medicines', '$totalMedicines', Icons.medical_services, const Color(0xFF6366F1)),
+                  const SizedBox(width: 12),
+                  _buildStatCard('Variants', '$totalVariants', Icons.category, const Color(0xFF8B5CF6)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            
+            // Stats Row 2
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _buildStatCard('Dealers', '$totalDealers', Icons.business, const Color(0xFF10B981)),
+                  const SizedBox(width: 12),
+                  _buildStatCard('Stock Qty', '$totalStock', Icons.inventory_2, const Color(0xFFF59E0B)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Quick Actions
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Quick Actions',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                    ),
                     const SizedBox(height: 16),
                     Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
+                      spacing: 10,
+                      runSpacing: 10,
                       children: [
+<<<<<<< HEAD
                         Chip(
                           avatar: const Icon(Icons.timer, color: Colors.white70, size: 18),
                           backgroundColor: const Color.from(alpha: 0.235, red: 0, green: 0, blue: 0),
@@ -246,6 +440,41 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                           avatar: const Icon(Icons.phone, color: Colors.white70, size: 18),
                           backgroundColor: const Color.fromARGB(60, 0, 0, 0),
                           label: Text(_pharmacy?['phone'] ?? 'No phone', style: const TextStyle(color: Colors.white)),
+=======
+                        _buildQuickActionButton(
+                          icon: Icons.add_box,
+                          label: 'Add Medicine',
+                          color: const Color(0xFF6366F1),
+                          onPressed: () => _openMedicineDialog(),
+                        ),
+                        _buildQuickActionButton(
+                          icon: Icons.add_shopping_cart,
+                          label: 'Add Stock',
+                          color: const Color(0xFF10B981),
+                          onPressed: _openStockDialog,
+                        ),
+                        _buildQuickActionButton(
+                          icon: Icons.person_add,
+                          label: 'Add Dealer',
+                          color: const Color(0xFF8B5CF6),
+                          onPressed: () => _openDealerDialog(),
+                        ),
+                        _buildQuickActionButton(
+                          icon: Icons.notifications_active,
+                          label: 'Low Stock',
+                          color: const Color(0xFFEF4444),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LowStockNotificationScreen(
+                                  pharmacyId: _pharmacy!['pharmacy_id'],
+                                  pharmacyName: _pharmacy?['pharmacy_name'],
+                                ),
+                              ),
+                            );
+                          },
+>>>>>>> b81253272587c2138886c074dc12012074ee4f4b
                         ),
                       ],
                     ),
@@ -253,72 +482,49 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 18),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  _buildStatCard('Medicines', '$totalMedicines', Icons.medical_services, Colors.indigo),
-                  const SizedBox(width: 12),
-                  _buildStatCard('Variants', '$totalVariants', Icons.category, Colors.deepPurple),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  _buildStatCard('Dealers', '$totalDealers', Icons.handshake, Colors.teal),
-                  const SizedBox(width: 12),
-                  _buildStatCard('Stock Qty', '$totalStock', Icons.inventory_2, Colors.orange),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(18.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Quick Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700, foregroundColor: Colors.white),
-                            icon: const Icon(Icons.add_box),
-                            label: const Text('Add Medicine'),
-                            onPressed: () => _openMedicineDialog(),
-                          ),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700, foregroundColor: Colors.white),
-                            icon: const Icon(Icons.add_task),
-                            label: const Text('Add Stock'),
-                            onPressed: _openStockDialog,
-                          ),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700, foregroundColor: Colors.white),
-                            icon: const Icon(Icons.person_add),
-                            label: const Text('Add Dealer'),
-                            onPressed: () => _openDealerDialog(),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
             const SizedBox(height: 28),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white70, size: 16),
+          const SizedBox(width: 6),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withOpacity(0.1),
+        foregroundColor: color,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: color.withOpacity(0.3)),
         ),
       ),
     );
@@ -332,20 +538,67 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text(medicine == null ? 'Add Medicine' : 'Edit Medicine'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
-              TextField(controller: manufacturerController, decoration: const InputDecoration(labelText: 'Manufacturer (optional)')),
-              TextField(controller: brandController, decoration: const InputDecoration(labelText: 'Brand')),
-            ],
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  medicine == null ? 'Add New Medicine' : 'Edit Medicine',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Medicine Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.medical_services),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: manufacturerController,
+                  decoration: InputDecoration(
+                    labelText: 'Manufacturer (Optional)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.factory),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: brandController,
+                  decoration: InputDecoration(
+                    labelText: 'Brand',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.branding_watermark),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6366F1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Save'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
-          ],
         );
       },
     );
@@ -366,14 +619,14 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
       if (medicine == null) {
         final response = await _inventoryService.createMedicine(payload);
         if (response['success'] == true) {
-          _showSnackBar('Medicine added', Colors.green);
+          _showSnackBar('Medicine added successfully', Colors.green);
         } else {
           _showSnackBar(response['message'] ?? 'Failed to add medicine', Colors.red);
         }
       } else {
         final response = await _inventoryService.updateMedicine(medicine['medicine_id'], payload);
         if (response['success'] == true) {
-          _showSnackBar('Medicine updated', Colors.green);
+          _showSnackBar('Medicine updated successfully', Colors.green);
         } else {
           _showSnackBar(response['message'] ?? 'Failed to update medicine', Colors.red);
         }
@@ -389,6 +642,9 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
   }
 
   Future<void> _deleteMedicine(int medicineId) async {
+    final confirm = await _showDeleteConfirmation('medicine');
+    if (!confirm) return;
+
     setState(() {
       _isBusy = true;
     });
@@ -409,6 +665,28 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
     }
   }
 
+  Future<bool> _showDeleteConfirmation(String itemName) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Confirm Delete'),
+        content: Text('Are you sure you want to delete this $itemName? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   Future<void> _openVariantDialog(Map<String, dynamic> medicine, {Map<String, dynamic>? variant}) async {
     final strengthController = TextEditingController(text: variant?['strength'] ?? '');
     final formController = TextEditingController(text: variant?['form'] ?? '');
@@ -417,20 +695,67 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text(variant == null ? 'Add Variant' : 'Edit Variant'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: strengthController, decoration: const InputDecoration(labelText: 'Strength')),
-              TextField(controller: formController, decoration: const InputDecoration(labelText: 'Form')),
-              TextField(controller: priceController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Price')),
-            ],
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  variant == null ? 'Add New Variant' : 'Edit Variant',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                Text('for ${medicine['name']}', style: const TextStyle(color: Colors.grey)),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: strengthController,
+                  decoration: InputDecoration(
+                    labelText: 'Strength (e.g., 500mg)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: formController,
+                  decoration: InputDecoration(
+                    labelText: 'Form (e.g., Tablet)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: priceController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Price',
+                    prefixText: 'LKR ',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6366F1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Save'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
-          ],
         );
       },
     );
@@ -474,6 +799,9 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
   }
 
   Future<void> _deleteVariant(int variantId) async {
+    final confirm = await _showDeleteConfirmation('variant');
+    if (!confirm) return;
+
     setState(() {
       _isBusy = true;
     });
@@ -502,20 +830,69 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text(dealer == null ? 'Add Dealer' : 'Edit Dealer'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Dealer Name')),
-              TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email')),
-              TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Phone')),
-            ],
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dealer == null ? 'Add New Dealer' : 'Edit Dealer',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Dealer Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.business),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.email),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: 'Phone',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.phone),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6366F1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Save'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
-          ],
         );
       },
     );
@@ -559,6 +936,9 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
   }
 
   Future<void> _deleteDealer(int dealerId) async {
+    final confirm = await _showDeleteConfirmation('dealer');
+    if (!confirm) return;
+
     setState(() {
       _isBusy = true;
     });
@@ -592,14 +972,25 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
       context: context,
       builder: (context) {
         return StatefulBuilder(builder: (context, setState) {
-          return AlertDialog(
-            title: const Text('Add Stock'),
-            content: SingleChildScrollView(
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              constraints: const BoxConstraints(maxWidth: 400),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const Text(
+                    'Add Stock',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
                   DropdownButtonFormField<Map<String, dynamic>>(
-                    decoration: const InputDecoration(labelText: 'Variant'),
+                    decoration: InputDecoration(
+                      labelText: 'Select Variant',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                     items: _medicines.expand((medicine) {
                       final variants = _variantsByMedicine[medicine['medicine_id']] ?? [];
                       return variants.map((variant) => DropdownMenuItem<Map<String, dynamic>>(
@@ -612,17 +1003,23 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                         selectedVariant = value;
                       });
                     },
-                    initialValue: selectedVariant,
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: quantityController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Quantity'),
+                    decoration: InputDecoration(
+                      labelText: 'Quantity',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.numbers),
+                    ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   DropdownButtonFormField<Map<String, dynamic>>(
-                    decoration: const InputDecoration(labelText: 'Dealer'),
+                    decoration: InputDecoration(
+                      labelText: 'Select Dealer',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                     items: _dealers.map((dealer) {
                       return DropdownMenuItem<Map<String, dynamic>>(
                         value: dealer,
@@ -634,13 +1031,16 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                         selectedDealer = value;
                       });
                     },
-                    initialValue: selectedDealer,
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: stockingDateController,
                     readOnly: true,
-                    decoration: const InputDecoration(labelText: 'Stocking Date'),
+                    decoration: InputDecoration(
+                      labelText: 'Stocking Date',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      suffixIcon: const Icon(Icons.calendar_today),
+                    ),
                     onTap: () async {
                       final date = await showDatePicker(
                         context: context,
@@ -653,11 +1053,15 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                       }
                     },
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: expiryDateController,
                     readOnly: true,
-                    decoration: const InputDecoration(labelText: 'Expiry Date'),
+                    decoration: InputDecoration(
+                      labelText: 'Expiry Date',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      suffixIcon: const Icon(Icons.calendar_today),
+                    ),
                     onTap: () async {
                       final date = await showDatePicker(
                         context: context,
@@ -670,13 +1074,28 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                       }
                     },
                   ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366F1),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('Add Stock'),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-              ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
-            ],
           );
         });
       },
@@ -729,6 +1148,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadInventory,
+      color: const Color(0xFF6366F1),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -737,122 +1157,194 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
             hint: 'Search medicines by name, brand, or manufacturer',
             onChanged: (value) => setState(() => _medicineSearchQuery = value),
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Total: ${filteredMedicines.length}', style: TextStyle(fontSize: 16, color: Colors.grey[700])),
-              ElevatedButton.icon(
-                onPressed: () => _openMedicineDialog(),
-                icon: const Icon(Icons.add),
-                label: const Text('Add Medicine'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${filteredMedicines.length} medicines',
+                    style: const TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600),
+                  ),
                 ),
-              ),
-            ],
+                ElevatedButton.icon(
+                  onPressed: () => _openMedicineDialog(),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add Medicine'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           ...filteredMedicines.map((medicine) {
             final variants = _variantsByMedicine[medicine['medicine_id']] ?? [];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            medicine['name'] ?? 'Unnamed medicine',
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: () => _openMedicineDialog(medicine: medicine),
-                          icon: const Icon(Icons.edit, size: 18),
-                          label: const Text('Edit'),
-                        ),
-                        TextButton.icon(
-                          onPressed: () => _deleteMedicine(medicine['medicine_id']),
-                          icon: const Icon(Icons.delete_forever, size: 18),
-                          label: const Text('Delete'),
-                          style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF6366F1).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.medication, color: Color(0xFF6366F1), size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    medicine['name'] ?? 'Unnamed medicine',
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${medicine['brand'] ?? 'Unknown brand'} • ${medicine['manufacturer'] ?? 'Unknown manufacturer'}',
+                                    style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuButton(
+                              icon: const Icon(Icons.more_vert),
+                              itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  child: const Text('Edit Medicine'),
+                                  onTap: () => _openMedicineDialog(medicine: medicine),
+                                ),
+                                PopupMenuItem(
+                                  child: const Text('Delete Medicine'),
+                                  onTap: () => _deleteMedicine(medicine['medicine_id']),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text('${medicine['brand'] ?? 'Unknown brand'} • ${medicine['manufacturer'] ?? 'Unknown manufacturer'}', style: TextStyle(color: Colors.grey[700])),
-                    const SizedBox(height: 16),
-                    variants.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.info_outline, color: Colors.grey),
-                                const SizedBox(width: 8),
-                                Text('No variants created yet', style: TextStyle(color: Colors.grey[700])),
-                              ],
-                            ),
-                          )
-                        : Column(
-                            children: variants.map((variant) {
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 10),
-                                color: Colors.grey.shade50,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                child: ListTile(
-                                  title: Text('${variant['strength'] ?? ''} ${variant['form'] ?? ''}'),
-                                  subtitle: Text('Price: ${variant['price'] ?? 'N/A'}'),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
+                  ),
+                  if (variants.isNotEmpty) ...[
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Variants',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
+                          ),
+                          const SizedBox(height: 12),
+                          ...variants.map((variant) {
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF9FAFB),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${variant['strength'] ?? ''} ${variant['form'] ?? ''}',
+                                          style: const TextStyle(fontWeight: FontWeight.w500),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'LKR:- ${variant['price']?.toString() ?? 'N/A'}',
+                                          style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Row(
                                     children: [
-                                      TextButton.icon(
+                                      IconButton(
+                                        icon: const Icon(Icons.edit, size: 18, color: Color(0xFF6366F1)),
                                         onPressed: () => _openVariantDialog(medicine, variant: variant),
-                                        icon: const Icon(Icons.edit, size: 18),
-                                        label: const Text('Edit'),
                                       ),
-                                      TextButton.icon(
+                                      IconButton(
+                                        icon: const Icon(Icons.delete, size: 18, color: Colors.red),
                                         onPressed: () => _deleteVariant(variant['variant_id']),
-                                        icon: const Icon(Icons.delete, size: 18),
-                                        label: const Text('Delete'),
-                                        style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
                                       ),
                                     ],
                                   ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        onPressed: () => _openVariantDialog(medicine),
-                        icon: const Icon(Icons.add_circle_outline),
-                        label: const Text('Add Variant'),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ],
                       ),
                     ),
                   ],
-                ),
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () => _openVariantDialog(medicine),
+                        icon: const Icon(Icons.add_circle_outline, size: 18),
+                        label: const Text('Add Variant'),
+                        style: TextButton.styleFrom(foregroundColor: const Color(0xFF6366F1)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           }).toList(),
           if (filteredMedicines.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 32),
+            Container(
+              padding: const EdgeInsets.all(40),
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Column(
                 children: [
-                  Icon(Icons.medical_information, size: 72, color: Colors.blue.shade200),
+                  Icon(Icons.medical_information, size: 72, color: Colors.grey[300]),
                   const SizedBox(height: 16),
-                  const Text('No medicines found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text('No medicines found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
                   const SizedBox(height: 8),
-                  const Text('Try a different search term or add a new medicine.', textAlign: TextAlign.center),
+                  const Text('Try a different search term or add a new medicine.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF6B7280))),
                 ],
               ),
             ),
@@ -864,86 +1356,177 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
   Widget _buildStockTab() {
     return RefreshIndicator(
       onRefresh: _loadInventory,
+      color: const Color(0xFF6366F1),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildSectionTitle('Stock & Dealers', subtitle: 'Track inventory quantities and dealer contacts.'),
-          Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 3,
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Stock Items', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
-                      Text('${_stock.length} records', style: TextStyle(color: Colors.grey[700])),
+                      const Text('Stock Items', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${_stock.length} records',
+                          style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w600),
+                        ),
+                      ),
                     ],
                   ),
                   ElevatedButton.icon(
                     onPressed: _openStockDialog,
-                    icon: const Icon(Icons.add_shopping_cart),
+                    icon: const Icon(Icons.add_shopping_cart, size: 18),
                     label: const Text('Add Stock'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: const Color(0xFF10B981),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           ..._stock.map((item) {
-            return Card(
-              margin: const EdgeInsets.only(bottom: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 2,
+            final isExpiringSoon = item['expiry_date'] != null && DateTime.parse(item['expiry_date']).difference(DateTime.now()).inDays < 30;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item['medicine_name'] ?? 'Unknown medicine', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                    Row(
                       children: [
-                        Chip(label: Text('Variant: ${item['strength'] ?? ''} ${item['form'] ?? ''}')),
-                        Chip(label: Text('Qty: ${item['quantity'] ?? 0}')),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.inventory, color: Color(0xFF6366F1), size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item['medicine_name'] ?? 'Unknown medicine',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Variant: ${item['strength'] ?? ''} ${item['form'] ?? ''}',
+                                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Qty: ${item['quantity'] ?? 0}',
+                            style: const TextStyle(color: Color(0xFFF59E0B), fontWeight: FontWeight.w600),
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    Text('Dealer: ${item['dealer_name'] ?? 'N/A'}', style: TextStyle(color: Colors.grey[800])),
-                    if (item['expiry_date'] != null) ...[
-                      const SizedBox(height: 6),
-                      Text('Expiry: ${item['expiry_date']}', style: TextStyle(color: Colors.grey[800])),
+                    const SizedBox(height: 12),
+                    if (item['dealer_name'] != null) ...[
+                      Row(
+                        children: [
+                          const Icon(Icons.business, size: 16, color: Color(0xFF6B7280)),
+                          const SizedBox(width: 8),
+                          Text(item['dealer_name'], style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
                     ],
+                    if (item['expiry_date'] != null) ...[
+                      Row(
+                        children: [
+                          Icon(Icons.event, size: 16, color: isExpiringSoon ? Colors.red : const Color(0xFF6B7280)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Expires: ${item['expiry_date']}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isExpiringSoon ? Colors.red : const Color(0xFF6B7280),
+                                fontWeight: isExpiringSoon ? FontWeight.w600 : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        label: const Text('Delete'),
                         onPressed: () async {
-                          setState(() {
-                            _isBusy = true;
-                          });
-                          final response = await _inventoryService.deleteStock(item['stock_id']);
-                          if (response['success'] == true) {
-                            _showSnackBar('Stock deleted', Colors.green);
-                            await _loadInventory();
-                          } else {
-                            _showSnackBar(response['message'] ?? 'Unable to delete stock', Colors.red);
+                          final confirm = await _showDeleteConfirmation('stock');
+                          if (confirm) {
+                            setState(() {
+                              _isBusy = true;
+                            });
+                            final response = await _inventoryService.deleteStock(item['stock_id']);
+                            if (response['success'] == true) {
+                              _showSnackBar('Stock deleted', Colors.green);
+                              await _loadInventory();
+                            } else {
+                              _showSnackBar(response['message'] ?? 'Unable to delete stock', Colors.red);
+                            }
+                            setState(() {
+                              _isBusy = false;
+                            });
                           }
-                          setState(() {
-                            _isBusy = false;
-                          });
                         },
+                        style: TextButton.styleFrom(foregroundColor: Colors.red),
                       ),
                     ),
                   ],
@@ -952,15 +1535,20 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
             );
           }).toList(),
           if (_stock.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 32),
+            Container(
+              padding: const EdgeInsets.all(40),
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Column(
                 children: [
-                  Icon(Icons.inventory_2, size: 72, color: Colors.green.shade200),
+                  Icon(Icons.inventory_2, size: 72, color: Colors.grey[300]),
                   const SizedBox(height: 16),
-                  const Text('No stock records yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text('No stock records yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
                   const SizedBox(height: 8),
-                  const Text('Start by adding stock from suppliers and dealers.', textAlign: TextAlign.center),
+                  const Text('Start by adding stock from suppliers and dealers.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF6B7280))),
                 ],
               ),
             ),
@@ -970,7 +1558,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
             hint: 'Search dealers by name, email, or phone',
             onChanged: (value) => setState(() => _dealerSearchQuery = value),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           ..._dealers.where((dealer) {
             final query = _dealerSearchQuery.toLowerCase();
             final name = dealer['dealer_name']?.toString().toLowerCase() ?? '';
@@ -978,27 +1566,52 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
             final phone = dealer['phone']?.toString().toLowerCase() ?? '';
             return name.contains(query) || email.contains(query) || phone.contains(query);
           }).map((dealer) {
-            return Card(
-              margin: const EdgeInsets.only(bottom: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 2,
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: ListTile(
-                title: Text(dealer['dealer_name'] ?? dealer['email'] ?? 'Dealer'),
-                subtitle: Text('Email: ${dealer['email'] ?? 'N/A'}\nPhone: ${dealer['phone'] ?? 'N/A'}'),
-                isThreeLine: true,
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+                contentPadding: const EdgeInsets.all(16),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.business, color: Color(0xFF8B5CF6), size: 20),
+                ),
+                title: Text(
+                  dealer['dealer_name'] ?? dealer['email'] ?? 'Dealer',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextButton.icon(
-                      onPressed: () => _openDealerDialog(dealer: dealer),
-                      icon: const Icon(Icons.edit, size: 18),
-                      label: const Text('Edit'),
+                    const SizedBox(height: 4),
+                    if (dealer['email'] != null) Text('📧 ${dealer['email']}', style: const TextStyle(fontSize: 13)),
+                    if (dealer['phone'] != null) Text('📱 ${dealer['phone']}', style: const TextStyle(fontSize: 13)),
+                  ],
+                ),
+                isThreeLine: true,
+                trailing: PopupMenuButton(
+                  icon: const Icon(Icons.more_vert),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      child: const Text('Edit Dealer'),
+                      onTap: () => _openDealerDialog(dealer: dealer),
                     ),
-                    TextButton.icon(
-                      onPressed: () => _deleteDealer(dealer['dealer_id']),
-                      icon: const Icon(Icons.delete, size: 18),
-                      label: const Text('Delete'),
-                      style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                    PopupMenuItem(
+                      child: const Text('Delete Dealer'),
+                      onTap: () => _deleteDealer(dealer['dealer_id']),
                     ),
                   ],
                 ),
@@ -1012,15 +1625,469 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                 final phone = dealer['phone']?.toString().toLowerCase() ?? '';
                 return name.contains(query) || email.contains(query) || phone.contains(query);
               }).isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 24),
+            Container(
+              padding: const EdgeInsets.all(40),
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Column(
                 children: [
-                  Icon(Icons.people_outline, size: 72, color: Colors.teal.shade200),
+                  Icon(Icons.people_outline, size: 72, color: Colors.grey[300]),
                   const SizedBox(height: 16),
-                  const Text('No dealers found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text('No dealers found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
                   const SizedBox(height: 8),
-                  const Text('Search with a different name, email, or phone number.', textAlign: TextAlign.center),
+                  const Text('Search with a different name, email, or phone number.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF6B7280))),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openBranchDialog({Map<String, dynamic>? branch}) async {
+    final branchNameController = TextEditingController(text: branch?['branch_name'] ?? '');
+    final addressController = TextEditingController(text: branch?['address'] ?? '');
+    final phoneController = TextEditingController(text: branch?['phone'] ?? '');
+    final openTimeController = TextEditingController(text: branch?['open_time'] ?? '');
+    final closeTimeController = TextEditingController(text: branch?['close_time'] ?? '');
+    LatLng? selectedLocation = branch != null && branch['latitude'] != null && branch['longitude'] != null
+        ? LatLng(branch['latitude'], branch['longitude'])
+        : null;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        branch == null ? 'Add New Branch' : 'Edit Branch',
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 20),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              TextField(
+                                controller: branchNameController,
+                                decoration: InputDecoration(
+                                  labelText: 'Branch Name',
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  prefixIcon: const Icon(Icons.store),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: addressController,
+                                maxLines: 2,
+                                decoration: InputDecoration(
+                                  labelText: 'Address',
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  prefixIcon: const Icon(Icons.location_on),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: phoneController,
+                                keyboardType: TextInputType.phone,
+                                decoration: InputDecoration(
+                                  labelText: 'Phone Number',
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  prefixIcon: const Icon(Icons.phone),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: openTimeController,
+                                      readOnly: true,
+                                      decoration: InputDecoration(
+                                        labelText: 'Open Time',
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                        suffixIcon: const Icon(Icons.access_time),
+                                      ),
+                                      onTap: () async {
+                                        final time = await showTimePicker(
+                                          context: context,
+                                          initialTime: TimeOfDay.now(),
+                                        );
+                                        if (time != null) {
+                                          openTimeController.text = time.format(context);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: closeTimeController,
+                                      readOnly: true,
+                                      decoration: InputDecoration(
+                                        labelText: 'Close Time',
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                        suffixIcon: const Icon(Icons.access_time),
+                                      ),
+                                      onTap: () async {
+                                        final time = await showTimePicker(
+                                          context: context,
+                                          initialTime: TimeOfDay.now(),
+                                        );
+                                        if (time != null) {
+                                          closeTimeController.text = time.format(context);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              const Text('Location', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 8),
+                              Container(
+                                height: 200,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey.shade300),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: MapLocationPicker(
+                                  selectedLocation: selectedLocation ?? const LatLng(6.9271, 79.8612), // Colombo coordinates
+                                  onLocationSelected: (location) {
+                                    setState(() {
+                                      selectedLocation = location;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6366F1),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('Save'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result != true) return;
+
+    final payload = {
+      'pharmacy_id': _pharmacy!['pharmacy_id'],
+      'branch_name': branchNameController.text.trim(),
+      'address': addressController.text.trim(),
+      'phone': phoneController.text.trim(),
+      'latitude': selectedLocation?.latitude,
+      'longitude': selectedLocation?.longitude,
+      'open_time': openTimeController.text.trim(),
+      'close_time': closeTimeController.text.trim(),
+    };
+
+    setState(() {
+      _isBusy = true;
+    });
+
+    try {
+      if (branch == null) {
+        final response = await _pharmacyService.createBranch(_pharmacy!['pharmacy_id'], payload);
+        if (response['success'] == true) {
+          _showSnackBar('Branch added successfully', Colors.green);
+        } else {
+          _showSnackBar(response['message'] ?? 'Failed to add branch', Colors.red);
+        }
+      } else {
+        final response = await _pharmacyService.updateBranch(branch['branch_id'], payload);
+        if (response['success'] == true) {
+          _showSnackBar('Branch updated successfully', Colors.green);
+        } else {
+          _showSnackBar(response['message'] ?? 'Failed to update branch', Colors.red);
+        }
+      }
+      await _loadBranches();
+    } catch (e) {
+      _showSnackBar('Error: $e', Colors.red);
+    } finally {
+      setState(() {
+        _isBusy = false;
+      });
+    }
+  }
+
+  Future<void> _setMainBranch(int branchId) async {
+    setState(() {
+      _isBusy = true;
+    });
+
+    try {
+      final response = await _pharmacyService.setMainBranch(_pharmacy!['pharmacy_id'], branchId);
+      if (response['success'] == true) {
+        _showSnackBar('Main branch updated successfully', Colors.green);
+        await _loadBranches();
+      } else {
+        _showSnackBar(response['message'] ?? 'Failed to update main branch', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error: $e', Colors.red);
+    } finally {
+      setState(() {
+        _isBusy = false;
+      });
+    }
+  }
+
+  Future<void> _deleteBranch(int branchId) async {
+    final confirm = await _showDeleteConfirmation('branch');
+    if (!confirm) return;
+
+    setState(() {
+      _isBusy = true;
+    });
+
+    try {
+      final response = await _pharmacyService.deleteBranch(branchId);
+      if (response['success'] == true) {
+        _showSnackBar('Branch deleted successfully', Colors.green);
+        await _loadBranches();
+      } else {
+        _showSnackBar(response['message'] ?? 'Failed to delete branch', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error: $e', Colors.red);
+    } finally {
+      setState(() {
+        _isBusy = false;
+      });
+    }
+  }
+
+  Widget _buildBranchesTab() {
+    return RefreshIndicator(
+      onRefresh: _loadBranches,
+      color: const Color(0xFF6366F1),
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildSectionTitle('Branches', subtitle: 'Manage your pharmacy locations and contact details.'),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Pharmacy Branches', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${_branches.length} branches',
+                          style: const TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => _openBranchDialog(),
+                    icon: const Icon(Icons.add_location_alt, size: 18),
+                    label: const Text('Add Branch'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ..._branches.map((branch) {
+            final isMainBranch = branch['is_main_branch'] == true;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.location_on, color: Color(0xFF6366F1), size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    branch['branch_name'] ?? 'Unnamed branch',
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                                  ),
+                                  if (isMainBranch) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF6366F1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Text(
+                                        'Main',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                branch['address'] ?? 'No address',
+                                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        PopupMenuButton(
+                          icon: const Icon(Icons.more_vert),
+                          itemBuilder: (context) => [
+                            if (!isMainBranch)
+                              PopupMenuItem(
+                                child: const Text('Set as Main Branch'),
+                                onTap: () => _setMainBranch(branch['branch_id']),
+                              ),
+                            PopupMenuItem(
+                              child: const Text('Edit Branch'),
+                              onTap: () => _openBranchDialog(branch: branch),
+                            ),
+                            PopupMenuItem(
+                              child: const Text('Delete Branch'),
+                              onTap: () => _deleteBranch(branch['branch_id']),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(Icons.phone, size: 16, color: Color(0xFF6B7280)),
+                        const SizedBox(width: 8),
+                        Text(
+                          branch['phone'] ?? 'No phone',
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time, size: 16, color: Color(0xFF6B7280)),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${branch['open_time'] ?? 'N/A'} - ${branch['close_time'] ?? 'N/A'}',
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+          if (_branches.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(40),
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.location_off, size: 72, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  const Text('No branches found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
+                  const SizedBox(height: 8),
+                  const Text('Add your first pharmacy branch to get started.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF6B7280))),
                 ],
               ),
             ),
@@ -1031,33 +2098,88 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Pharmacy Dashboard'),
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-          actions: [
-            IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
-          ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Overview'),
-              Tab(text: 'Medicines'),
-              Tab(text: 'Stock'),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Pharmacy Dashboard',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.3),
         ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+        backgroundColor: const Color(0xFF6366F1),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+            tooltip: 'Logout',
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
+            Tab(text: 'Medicines', icon: Icon(Icons.medical_services)),
+            Tab(text: 'Stock', icon: Icon(Icons.inventory_2)),
+            Tab(text: 'Branches', icon: Icon(Icons.location_on)),
+            Tab(text: 'Sales', icon: Icon(Icons.point_of_sale)),
+          ],
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+      body: Container(
+        color: const Color(0xFFF8FAFC),
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                ),
+              )
             : _pharmacy == null
-                ? const Center(child: Text('Pharmacy not found'))
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEF4444).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.error_outline,
+                            size: 60,
+                            color: Color(0xFFEF4444),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Pharmacy not found',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1F2937),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Please complete your pharmacy registration',
+                          style: TextStyle(color: Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                  )
                 : TabBarView(
+                    controller: _tabController,
                     children: [
                       _buildOverviewContent(),
                       _buildInventoryTab(),
                       _buildStockTab(),
+                      _buildBranchesTab(),
+                      const PharmacySalesScreen(),
                     ],
                   ),
       ),

@@ -1,5 +1,5 @@
-// backend/controllers/patientController.js
 const pool = require("../config/db");
+const Validators = require("../utils/validators");
 
 // ==================== SAVE PATIENT DETAILS ====================
 exports.savePatientDetails = async (req, res) => {
@@ -19,6 +19,24 @@ exports.savePatientDetails = async (req, res) => {
     return res.status(400).json({ 
       message: "Please provide first_name, last_name, and phone" 
     });
+  }
+
+  // Validate first name
+  const firstNameValidation = Validators.validateName(first_name, 'First name');
+  if (!firstNameValidation.valid) {
+    return res.status(400).json({ message: firstNameValidation.message });
+  }
+
+  // Validate last name
+  const lastNameValidation = Validators.validateName(last_name, 'Last name');
+  if (!lastNameValidation.valid) {
+    return res.status(400).json({ message: lastNameValidation.message });
+  }
+
+  // Validate phone number
+  const phoneValidation = Validators.validatePhoneNumber(phone);
+  if (!phoneValidation.valid) {
+    return res.status(400).json({ message: phoneValidation.message });
   }
 
   if (date_of_birth) {
@@ -449,9 +467,112 @@ exports.checkPatientDetails = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ ERROR CHECKING PATIENT DETAILS:", err.message);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Server error while checking patient details",
-      error: err.message 
+      error: err.message
     });
+  }
+};
+
+// ==================== CREATE PATIENT (FOR DOCTORS) ====================
+exports.createPatient = async (req, res) => {
+  const {
+    first_name,
+    last_name,
+    phone,
+    email,
+    date_of_birth,
+    gender,
+    username,
+    password
+  } = req.body;
+
+  console.log("📝 Creating patient:", first_name, last_name);
+
+  // ================ VALIDATION ================
+  if (!first_name || !last_name || !phone) {
+    console.log("❌ Missing required fields");
+    return res.status(400).json({
+      success: false,
+      message: "Please provide: first_name, last_name, phone"
+    });
+  }
+
+  // Validate first name
+  const firstNameValidation = Validators.validateName(first_name, 'First name');
+  if (!firstNameValidation.valid) {
+    return res.status(400).json({ success: false, message: firstNameValidation.message });
+  }
+
+  // Validate last name
+  const lastNameValidation = Validators.validateName(last_name, 'Last name');
+  if (!lastNameValidation.valid) {
+    return res.status(400).json({ success: false, message: lastNameValidation.message });
+  }
+
+  // Validate phone number
+  const phoneValidation = Validators.validatePhoneNumber(phone);
+  if (!phoneValidation.valid) {
+    return res.status(400).json({ success: false, message: phoneValidation.message });
+  }
+
+  // Validate email if provided
+  if (email) {
+    const emailValidation = Validators.validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ success: false, message: emailValidation.message });
+    }
+  }
+
+  // Validate date of birth if provided
+  if (date_of_birth) {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date_of_birth)) {
+      return res.status(400).json({
+        success: false,
+        message: "Date of birth must be in YYYY-MM-DD format"
+      });
+    }
+  }
+
+  // Validate gender if provided
+  if (gender && !['male', 'female', 'other'].includes(gender.toLowerCase())) {
+    return res.status(400).json({ success: false, message: "Gender must be 'male', 'female', or 'other'" });
+  }
+};
+
+// ==================== GET ALL PATIENTS ====================
+exports.getAllPatients = async (req, res) => {
+  const { search } = req.query;
+
+  console.log("🔍 Fetching all patients", search ? `with search: ${search}` : "");
+
+  try {
+    let query = `
+      SELECT p.patient_id, p.user_id, p.first_name, p.last_name, p.gender, p.date_of_birth, p.phone, p.email
+      FROM patients p
+    `;
+
+    const params = [];
+
+    if (search) {
+      query += ` WHERE p.first_name ILIKE $1 OR p.last_name ILIKE $1 OR p.email ILIKE $1 OR p.phone ILIKE $1`;
+      params.push(`%${search}%`);
+    }
+
+    query += ` ORDER BY p.first_name, p.last_name`;
+
+    const result = await pool.query(query, params);
+
+    console.log(`✅ Retrieved ${result.rows.length} patient(s)`);
+
+    res.json({
+      success: true,
+      count: result.rows.length,
+      patients: result.rows
+    });
+  } catch (error) {
+    console.error('❌ Error fetching patients:', error.message);
+    res.status(500).json({ success: false, message: "Error fetching patients", error: error.message });
   }
 };

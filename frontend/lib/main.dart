@@ -5,8 +5,11 @@ import 'screens/patient_dashboard_screen.dart';
 import 'screens/patient_register_screen.dart';
 import 'screens/pharmacy_register_screen.dart';
 import 'screens/pharmacy_dashboard_screen.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/doctor_dashboard_screen.dart';
+import 'screens/admin_dashboard_screen.dart';
 import 'screens/verify_email_screen.dart';
+import 'screens/forgot_password_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'services/auth_service.dart';
 import 'services/patient_service.dart';
 import 'services/pharmacy_service.dart';
@@ -26,7 +29,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
-        fontFamily: 'Roboto',
       ),
       initialRoute: '/',
       routes: {
@@ -38,6 +40,13 @@ class MyApp extends StatelessWidget {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
           return VerifyEmailScreen(
             userData: args ?? {'email': '', 'username': ''},
+          );
+        },
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
+        '/reset-password': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+          return ResetPasswordScreen(
+            token: args?['token'] as String?,
           );
         },
       },
@@ -108,7 +117,15 @@ class AuthWrapper extends StatelessWidget {
                 );
               }
 
-              // For doctor, admin, or other roles
+              if (userData != null && userData['role'] == 'doctor') {
+                return const DashboardScreen();
+              }
+
+              if (userData != null && userData['role'] == 'admin') {
+                return const AdminDashboardScreen();
+              }
+
+              // Fallback for any other roles
               return const DashboardScreen();
             },
           );

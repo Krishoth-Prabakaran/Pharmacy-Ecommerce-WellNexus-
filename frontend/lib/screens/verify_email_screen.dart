@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import 'patient_register_screen.dart';
 import 'pharmacy_register_screen.dart';
+import 'doctor_register_screen.dart';
+import 'reset_password_screen.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -44,13 +46,22 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     });
 
     try {
-      final result = await AuthService().verifyOtp(
-        widget.userData['email'],
-        otp,
-      );
+      final result = widget.userData['isPasswordReset'] == true
+          ? await AuthService().verifyPasswordResetOtp(widget.userData['email'], otp)
+          : await AuthService().verifyOtp(widget.userData['email'], otp);
 
       if (result['success']) {
-        if (mounted) _navigateBasedOnRole(result['user']);
+        if (widget.userData['isPasswordReset'] == true) {
+          // Navigate to reset password screen with the reset token
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ResetPasswordScreen(token: result['reset_token'])
+            ),
+          );
+        } else {
+          if (mounted) _navigateBasedOnRole(result['user']);
+        }
       } else {
         setState(() => _errorMessage = result['message'] ?? "Invalid OTP");
       }
@@ -72,6 +83,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         context, 
         MaterialPageRoute(builder: (context) => PharmacyRegisterScreen(userData: user))
       );
+    } else if (user['role'] == 'doctor') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => DoctorRegisterScreen(userData: user))
+      );
     } else {
       Navigator.pushReplacementNamed(context, '/dashboard');
     }
@@ -80,66 +96,213 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("OTP Verification"),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 40),
-            const Icon(Icons.security, size: 80, color: Colors.blue),
-            const SizedBox(height: 24),
-            const Text(
-              "Verify Your Account",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "Enter the 6-digit code sent to\n${widget.userData['email']}",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600], fontSize: 16),
-            ),
-            const SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(6, (index) => _buildOtpBox(index)),
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 24),
-              Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-              ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF6366F1),
+              Color(0xFF8B5CF6),
+              Color(0xFFEC4899),
             ],
-            const SizedBox(height: 40),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _verifyOtp,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 55),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Animated Icon
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 800),
+                    builder: (context, value, child) {
+                      return Transform.scale(scale: value, child: child);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFFFFFF), Color(0xFFF0F4FF)],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.verified_user_outlined,
+                        size: 80,
+                        color: Color(0xFF6366F1),
+                      ),
                     ),
-                    child: const Text("Verify & Register", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () {
-                // Logic to resend OTP could go here
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Check your email for the new code")),
-                );
-              },
-              child: const Text("Resend Code", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 32),
+
+                  // Header Text
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Colors.white, Color(0xFFE0E7FF)],
+                    ).createShader(bounds),
+                    child: Text(
+                      widget.userData['isPasswordReset'] == true ? 'Verify Password Reset' : 'Verify Your Email',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.userData['isPasswordReset'] == true
+                        ? 'Enter the 6-digit code sent to\n${widget.userData['email']}\nto reset your password'
+                        : 'Enter the 6-digit code sent to\n${widget.userData['email']}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFFE0E7FF),
+                      fontWeight: FontWeight.w500,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // OTP Input Boxes
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: List.generate(6, (index) => _buildOtpBox(index)),
+                        ),
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEF4444).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFEF4444), width: 1),
+                            ),
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(
+                                color: Color(0xFFEF4444),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Verify Button
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF6366F1),
+                          Color(0xFF8B5CF6),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6366F1).withOpacity(0.4),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _isLoading ? null : _verifyOtp,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: _isLoading
+                              ? const Center(
+                                  child: SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      strokeWidth: 2.5,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Verify & Register',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    letterSpacing: 0.5,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Resend Code Button
+                  TextButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'New code sent to your email',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Color(0xFF6366F1),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Did not receive code? Resend',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -147,26 +310,32 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   Widget _buildOtpBox(int index) {
     return SizedBox(
-      width: 45,
-      height: 55,
+      width: 50,
+      height: 60,
       child: TextField(
         controller: _controllers[index],
         focusNode: _focusNodes[index],
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
         maxLength: 1,
-        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF6366F1),
+        ),
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         decoration: InputDecoration(
-          counterText: "",
+          counterText: '',
           enabledBorder: OutlineInputBorder(
             borderSide: BorderSide(color: Colors.grey.shade300, width: 2),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
           ),
           focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.blue, width: 2),
-            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2.5),
+            borderRadius: BorderRadius.circular(12),
           ),
+          filled: true,
+          fillColor: const Color(0xFFF9FAFB),
         ),
         onChanged: (value) {
           if (value.isNotEmpty && index < 5) {

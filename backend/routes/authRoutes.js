@@ -85,4 +85,42 @@ router.get("/user/:userId", authController.getUserById);
  */
 router.get("/test-email", authController.testEmail);
 
+// ==================== PASSWORD RESET ROUTES ====================
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Request password reset (sends email with reset link)
+ * @access  Public
+ * @body    { email }
+ * @returns { success, message }
+ */
+router.post("/forgot-password", authController.forgotPassword);
+
+/**
+ * @route   POST /api/auth/verify-password-reset-otp
+ * @desc    Verify OTP for password reset and return reset token
+ * @access  Public
+ * @body    { email, otp }
+ * @returns { success, message, reset_token, user }
+ */
+router.post("/verify-password-reset-otp", authController.verifyPasswordResetOtp);
+
+/**
+ * @route   POST /api/auth/verify-reset-token
+ * @desc    Verify if reset token is valid
+ * @access  Public
+ * @body    { token }
+ * @returns { success, message, user }
+ */
+router.post("/verify-reset-token", authController.verifyResetToken);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Reset password with valid token
+ * @access  Public
+ * @body    { token, newPassword }
+ * @returns { success, message }
+ */
+router.post("/reset-password", authController.resetPassword);
+
 module.exports = router;

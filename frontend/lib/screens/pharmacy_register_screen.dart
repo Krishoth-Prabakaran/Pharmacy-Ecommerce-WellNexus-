@@ -1,7 +1,10 @@
-// screens/pharmacy_register_screen.dart
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Add this import
+﻿import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
+import '../services/location_service.dart';
 import '../services/pharmacy_service.dart';
+import '../utils/validators.dart';
+import '../widgets/map_location_picker.dart';
 import 'login_screen.dart';
 
 class PharmacyRegisterScreen extends StatefulWidget {
@@ -18,7 +21,6 @@ class PharmacyRegisterScreen extends StatefulWidget {
 
 class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-
   final _pharmacyNameController = TextEditingController();
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -33,13 +35,13 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
   @override
   void initState() {
     super.initState();
-    print('📱 PharmacyRegisterScreen received: ${widget.userData}');
+    print('📱 PharmacyRegisterScreen received: ');
   }
 
-  Future<void> _selectTime(BuildContext context, bool isOpenTime) async {
+  Future<void> _selectTimeForBranch(BuildContext context, int branchIndex, bool isOpenTime) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: _branches[branchIndex][isOpenTime ? 'open_time' : 'close_time'] ?? TimeOfDay.now(),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -55,11 +57,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
 
     if (picked != null) {
       setState(() {
-        if (isOpenTime) {
-          _openTime = picked;
-        } else {
-          _closeTime = picked;
-        }
+        _branches[branchIndex][isOpenTime ? 'open_time' : 'close_time'] = picked;
       });
     }
   }
@@ -71,7 +69,18 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
     return DateFormat('HH:mm:ss').format(dt);
   }
 
-  void _registerPharmacy() async {
+  void _showSnackBar(String message, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<void> _registerPharmacy() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
@@ -112,13 +121,602 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
     }
   }
 
-  void _showSnackBar(String message, Color color) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        duration: const Duration(seconds: 3),
+  Widget _buildBranchCard(int index) {
+    final branch = _branches[index];
+    final isMainBranch = branch['is_main_branch'] == true;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Branch Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      branch['branch_name'],
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    if (isMainBranch) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'Main',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                Row(
+                  children: [
+                    if (!isMainBranch)
+                      IconButton(
+                        onPressed: () => _setMainBranch(index),
+                        icon: const Icon(Icons.star_border, color: Color(0xFF6366F1)),
+                        tooltip: 'Set as Main Branch',
+                      ),
+                    if (_branches.length > 1)
+                      IconButton(
+                        onPressed: () => _removeBranch(index),
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        tooltip: 'Remove Branch',
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Branch Name
+            TextFormField(
+              initialValue: branch['branch_name'],
+              decoration: InputDecoration(
+                labelText: 'Branch Name',
+                labelStyle: const TextStyle(
+                  color: Color(0xFF9CA3AF),
+                  fontWeight: FontWeight.w600,
+                ),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 12),
+                  child: Icon(Icons.store_outlined, color: Colors.grey[400]),
+                ),
+                prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                ),
+                filled: true,
+                fillColor: Color(0xFFF9FAFB),
+              ),
+              onChanged: (value) {
+                _branches[index]['branch_name'] = value;
+              },
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Branch name is required';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Address
+            TextFormField(
+              initialValue: branch['address'],
+              maxLines: 2,
+              decoration: InputDecoration(
+                labelText: 'Address',
+                labelStyle: const TextStyle(
+                  color: Color(0xFF9CA3AF),
+                  fontWeight: FontWeight.w600,
+                ),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 12),
+                  child: Icon(Icons.location_on_outlined, color: Colors.grey[400]),
+                ),
+                prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                ),
+                filled: true,
+                fillColor: Color(0xFFF9FAFB),
+              ),
+              onChanged: (value) {
+                _branches[index]['address'] = value;
+              },
+              validator: (value) {
+                return Validators.validateTextField(value, fieldName: 'Address', minLength: 5, maxLength: 255);
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Phone Number
+            TextFormField(
+              initialValue: branch['phone'],
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: 'Phone Number',
+                labelStyle: const TextStyle(
+                  color: Color(0xFF9CA3AF),
+                  fontWeight: FontWeight.w600,
+                ),
+                hintText: '0XXXXXXXXX or +94XXXXXXXXX',
+                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 12),
+                  child: Icon(Icons.phone_outlined, color: Colors.grey[400]),
+                ),
+                prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                ),
+                filled: true,
+                fillColor: Color(0xFFF9FAFB),
+              ),
+              onChanged: (value) {
+                _branches[index]['phone'] = value;
+              },
+              validator: (value) {
+                return Validators.validatePhoneNumber(value);
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Location selector
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : () => _useCurrentLocation(index),
+                    icon: const Icon(Icons.my_location),
+                    label: const Text('Use Current Location'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Map Location Picker
+            MapLocationPicker(
+              selectedLocation: _selectedLocation ?? _defaultLocation,
+              onLocationSelected: (location) => _updateSelectedLocation(location, index),
+            ),
+
+            // Open & Close Time
+            const SizedBox(height: 12),
+            const Text(
+              'Operating Hours',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _selectTimeForBranch(context, index, true),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                        borderRadius: BorderRadius.circular(12),
+                        color: Color(0xFFF9FAFB),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.access_time_outlined, color: Colors.grey[400], size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              branch['open_time'] == null
+                                  ? 'Open Time'
+                                  : (branch['open_time'] as TimeOfDay).format(context),
+                              style: TextStyle(
+                                color: branch['open_time'] == null ? Colors.grey[500] : Colors.grey[800],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _selectTimeForBranch(context, index, false),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                        borderRadius: BorderRadius.circular(12),
+                        color: Color(0xFFF9FAFB),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.access_time_outlined, color: Colors.grey[400], size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              branch['close_time'] == null
+                                  ? 'Close Time'
+                                  : (branch['close_time'] as TimeOfDay).format(context),
+                              style: TextStyle(
+                                color: branch['close_time'] == null ? Colors.grey[500] : Colors.grey[800],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectTimeForBranch(BuildContext context, int branchIndex, bool isOpenTime) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _branches[branchIndex][isOpenTime ? 'open_time' : 'close_time'] ?? TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Colors.blue,
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _branches[branchIndex][isOpenTime ? 'open_time' : 'close_time'] = picked;
+      });
+    }
+  }
+
+  Widget _buildBranchCard(int index) {
+    final branch = _branches[index];
+    final isMainBranch = branch['is_main_branch'] == true;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      branch['branch_name'],
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    if (isMainBranch) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'Main',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                Row(
+                  children: [
+                    if (!isMainBranch)
+                      IconButton(
+                        onPressed: () => _setMainBranch(index),
+                        icon: const Icon(Icons.star_border, color: Color(0xFF6366F1)),
+                        tooltip: 'Set as Main Branch',
+                      ),
+                    if (_branches.length > 1)
+                      IconButton(
+                        onPressed: () => _removeBranch(index),
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        tooltip: 'Remove Branch',
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              initialValue: branch['branch_name'],
+              decoration: InputDecoration(
+                labelText: 'Branch Name',
+                labelStyle: const TextStyle(
+                  color: Color(0xFF9CA3AF),
+                  fontWeight: FontWeight.w600,
+                ),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 12),
+                  child: Icon(Icons.store_outlined, color: Colors.grey[400]),
+                ),
+                prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+              ),
+              onChanged: (value) {
+                _branches[index]['branch_name'] = value;
+              },
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Branch name is required';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              initialValue: branch['address'],
+              maxLines: 2,
+              decoration: InputDecoration(
+                labelText: 'Address',
+                labelStyle: const TextStyle(
+                  color: Color(0xFF9CA3AF),
+                  fontWeight: FontWeight.w600,
+                ),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 12),
+                  child: Icon(Icons.location_on_outlined, color: Colors.grey[400]),
+                ),
+                prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+              ),
+              onChanged: (value) {
+                _branches[index]['address'] = value;
+              },
+              validator: (value) {
+                return Validators.validateTextField(value, fieldName: 'Address', minLength: 5, maxLength: 255);
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              initialValue: branch['phone'],
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: 'Phone Number',
+                labelStyle: const TextStyle(
+                  color: Color(0xFF9CA3AF),
+                  fontWeight: FontWeight.w600,
+                ),
+                hintText: '0XXXXXXXXX or +94XXXXXXXXX',
+                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 12),
+                  child: Icon(Icons.phone_outlined, color: Colors.grey[400]),
+                ),
+                prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+              ),
+              onChanged: (value) {
+                _branches[index]['phone'] = value;
+              },
+              validator: (value) {
+                return Validators.validatePhoneNumber(value);
+              },
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _useCurrentLocation(index),
+                icon: const Icon(Icons.my_location),
+                label: const Text('Use Current Location'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            MapLocationPicker(
+              selectedLocation: _selectedLocation ?? _defaultLocation,
+              onLocationSelected: (location) => _updateSelectedLocation(location, index),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Operating Hours',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _selectTimeForBranch(context, index, true),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFFF9FAFB),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.access_time_outlined, color: Colors.grey[400], size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              branch['open_time'] == null ? 'Open Time' : (branch['open_time'] as TimeOfDay).format(context),
+                              style: TextStyle(
+                                color: branch['open_time'] == null ? Colors.grey[500] : Colors.grey[800],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _selectTimeForBranch(context, index, false),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFFF9FAFB),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.access_time_outlined, color: Colors.grey[400], size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              branch['close_time'] == null ? 'Close Time' : (branch['close_time'] as TimeOfDay).format(context),
+                              style: TextStyle(
+                                color: branch['close_time'] == null ? Colors.grey[500] : Colors.grey[800],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -126,280 +724,384 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Register Pharmacy'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(15),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF6366F1),
+              Color(0xFF8B5CF6),
+              Color(0xFFEC4899),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Colors.white, Color(0xFFE0E7FF)],
+                    ).createShader(bounds),
+                    child: const Text(
+                      'Pharmacy Details',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.local_pharmacy,
-                      size: 60,
-                      color: Colors.blue,
+                const SizedBox(height: 8),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Help patients find your pharmacy',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFFE0E7FF),
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Welcome, ${widget.userData['username']}!',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      'Please provide your pharmacy details',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 30),
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _pharmacyNameController,
-                      decoration: InputDecoration(
-                        labelText: 'Pharmacy Name *',
-                        prefixIcon: const Icon(Icons.store),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                const SizedBox(height: 30),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFFFFF), Color(0xFFF0F4FF)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                          ),
+                          shape: BoxShape.circle,
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2),
+                        child: const Icon(
+                          Icons.local_pharmacy,
+                          size: 40,
+                          color: Colors.white,
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter pharmacy name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _addressController,
-                      maxLines: 2,
-                      decoration: InputDecoration(
-                        labelText: 'Address *',
-                        prefixIcon: const Icon(Icons.location_on),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Welcome, !',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1F2937),
+                          letterSpacing: 0.3,
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter address';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number *',
-                        prefixIcon: const Icon(Icons.phone),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue, width: 2),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Complete your pharmacy information',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter phone number';
-                        }
-                        if (value.length < 10) {
-                          return 'Enter a valid phone number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 30,
+                        offset: const Offset(0, 15),
+                      ),
+                    ],
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _latitudeController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: InputDecoration(
-                              labelText: 'Latitude',
-                              prefixIcon: const Icon(Icons.pin_drop),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: Colors.blue, width: 2),
-                              ),
+                        TextFormField(
+                          controller: _pharmacyNameController,
+                          decoration: InputDecoration(
+                            labelText: 'Pharmacy Name',
+                            labelStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontWeight: FontWeight.w600,
                             ),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 12),
+                              child: Icon(Icons.store_outlined, color: Colors.grey[400]),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
+                          validator: (value) {
+                            return Validators.validateTextField(value, fieldName: 'Pharmacy name', minLength: 2, maxLength: 100);
+                          },
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _longitudeController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: InputDecoration(
-                              labelText: 'Longitude',
-                              prefixIcon: const Icon(Icons.pin_drop),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: Colors.blue, width: 2),
-                              ),
+                        const SizedBox(height: 16),
+
+                        // Address
+                        TextFormField(
+                          controller: _addressController,
+                          maxLines: 2,
+                          decoration: InputDecoration(
+                            labelText: 'Address',
+                            labelStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontWeight: FontWeight.w600,
                             ),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 12),
+                              child: Icon(Icons.location_on_outlined, color: Colors.grey[400]),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[3]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[3]!, width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: Color(0xFFF9FAFB),
                           ),
+                          validator: (value) {
+                            return Validators.validateTextField(value, fieldName: 'Address', minLength: 5, maxLength: 255);
+                          },
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => _selectTime(context, true),
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: 'Open Time',
-                                prefixIcon: const Icon(Icons.access_time),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    _openTime == null
-                                        ? 'Select'
-                                        : _openTime!.format(context),
-                                    style: TextStyle(
-                                      color: _openTime == null
-                                          ? Colors.grey.shade600
-                                          : Colors.black,
-                                    ),
-                                  ),
-                                  const Icon(Icons.arrow_drop_down),
-                                ],
-                              ),
+                        const SizedBox(height: 16),
+
+                        // Phone Number
+                        TextFormField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            labelText: 'Phone Number',
+                            labelStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontWeight: FontWeight.w600,
                             ),
+                            hintText: '0XXXXXXXXX or +94XXXXXXXXX',
+                            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 12),
+                              child: Icon(Icons.phone_outlined, color: Colors.grey[400]),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[3]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[3]!, width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            ),
+                            filled: true,
+                            fillColor: Color(0xFFF9FAFB),
                           ),
+                          validator: (value) {
+                            return Validators.validatePhoneNumber(value);
+                          },
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => _selectTime(context, false),
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: 'Close Time',
-                                prefixIcon: const Icon(Icons.access_time),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    _closeTime == null
-                                        ? 'Select'
-                                        : _closeTime!.format(context),
-                                    style: TextStyle(
-                                      color: _closeTime == null
-                                          ? Colors.grey.shade600
-                                          : Colors.black,
-                                    ),
-                                  ),
-                                  const Icon(Icons.arrow_drop_down),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : ElevatedButton(
-                            onPressed: _registerPharmacy,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(double.infinity, 50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: const Text(
-                              'Register Pharmacy',
+                        const SizedBox(height: 16),
+
+                        // Latitude & Longitude
+                        Row(
+                          children: [
+                            const Text(
+                              'Branches',
                               style: TextStyle(
                                 fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1F2937),
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: _addBranch,
+                              icon: const Icon(Icons.add),
+                              label: const Text('Add Branch'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF6366F1),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Open & Close Time
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _selectTime(context, true),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey[3]!, width: 1.5),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: Color(0xFFF9FAFB),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.access_time_outlined, color: Colors.grey[400], size: 20),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          _openTime == null
+                                              ? 'Open Time'
+                                              : _openTime!.format(context),
+                                          style: TextStyle(
+                                            color: _openTime == null ? Colors.grey[500] : Colors.grey[800],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _selectTime(context, false),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey[3]!, width: 1.5),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: Color(0xFFF9FAFB),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.access_time_outlined, color: Colors.grey[400], size: 20),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          _closeTime == null
+                                              ? 'Close Time'
+                                              : _closeTime!.format(context),
+                                          style: TextStyle(
+                                            color: _closeTime == null ? Colors.grey[500] : Colors.grey[800],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF6366F1),
+                                Color(0xFF8B5CF6),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF6366F1).withOpacity(0.4),
+                                blurRadius: 15,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: _isLoading ? null : _registerPharmacy,
+                              borderRadius: BorderRadius.circular(12),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: _isLoading
+                                    ? const Center(
+                                        child: SizedBox(
+                                          height: 24,
+                                          width: 24,
+                                          child: CircularProgressIndicator(
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            strokeWidth: 2.5,
+                                          ),
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Register Pharmacy',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                          letterSpacing: 0.5,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
                               ),
                             ),
                           ),
-                  ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
@@ -409,10 +1111,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
   @override
   void dispose() {
     _pharmacyNameController.dispose();
-    _addressController.dispose();
-    _phoneController.dispose();
-    _latitudeController.dispose();
-    _longitudeController.dispose();
     super.dispose();
   }
 }
