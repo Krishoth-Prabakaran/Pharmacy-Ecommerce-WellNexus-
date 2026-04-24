@@ -230,8 +230,8 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
                             colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                           ),
                           shape: BoxShape.circle,
@@ -313,7 +313,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateName(value, fieldName: 'First name');
@@ -348,7 +348,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateName(value, fieldName: 'Last name');
@@ -361,7 +361,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.grey[300]!, width: 1.5),
-                            color: Color(0xFFF9FAFB),
+                            color: const Color(0xFFF9FAFB),
                           ),
                           child: DropdownButtonFormField<String>(
                             decoration: InputDecoration(
@@ -427,7 +427,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateLicenseNumber(value);
@@ -465,7 +465,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validatePhoneNumber(value);
@@ -501,7 +501,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateConsultationFee(value);
@@ -537,7 +537,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -553,7 +553,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                                   decoration: BoxDecoration(
                                     border: Border.all(color: Colors.grey[3]!, width: 1.5),
                                     borderRadius: BorderRadius.circular(12),
-                                    color: Color(0xFFF9FAFB),
+                                    color: const Color(0xFFF9FAFB),
                                   ),
                                   child: Row(
                                     children: [
@@ -584,7 +584,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                                   decoration: BoxDecoration(
                                     border: Border.all(color: Colors.grey[3]!, width: 1.5),
                                     borderRadius: BorderRadius.circular(12),
-                                    color: Color(0xFFF9FAFB),
+                                    color: const Color(0xFFF9FAFB),
                                   ),
                                   child: Row(
                                     children: [
@@ -638,7 +638,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -671,7 +671,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                         ),
                         const SizedBox(height: 28),

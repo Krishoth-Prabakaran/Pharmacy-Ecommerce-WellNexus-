@@ -1,9 +1,11 @@
 // screens/pharmacy_register_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import '../services/pharmacy_service.dart';
 import '../utils/validators.dart';
 import 'login_screen.dart';
+import 'map_picker_screen.dart';
 
 class PharmacyRegisterScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -124,6 +126,43 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
     );
   }
 
+  void _openMapPicker() async {
+    late final LatLng? initialLocation;
+    
+    // If coordinates already exist, use them as initial location
+    if (_latitudeController.text.isNotEmpty && _longitudeController.text.isNotEmpty) {
+      try {
+        final lat = double.parse(_latitudeController.text);
+        final lng = double.parse(_longitudeController.text);
+        initialLocation = LatLng(lat, lng);
+      } catch (e) {
+        initialLocation = null;
+      }
+    } else {
+      initialLocation = null;
+    }
+
+    // Navigate to map picker and get selected location
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MapPickerScreen(
+            initialLocation: initialLocation,
+            onLocationSelected: (location, address) {
+              setState(() {
+                _latitudeController.text = location.latitude.toString();
+                _longitudeController.text = location.longitude.toString();
+                _addressController.text = address;
+              });
+              _showSnackBar('Location selected successfully!', Colors.green);
+            },
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -199,8 +238,8 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
                             colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                           ),
                           shape: BoxShape.circle,
@@ -282,7 +321,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateTextField(value, fieldName: 'Pharmacy name', minLength: 2, maxLength: 100);
@@ -318,7 +357,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateTextField(value, fieldName: 'Address', minLength: 5, maxLength: 255);
@@ -356,11 +395,30 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validatePhoneNumber(value);
                           },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Map Picker Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _openMapPicker,
+                            icon: const Icon(Icons.location_on_outlined),
+                            label: const Text('Select Location on Map'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6366F1),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 16),
 
@@ -395,7 +453,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                                     borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                                   ),
                                   filled: true,
-                                  fillColor: Color(0xFFF9FAFB),
+                                  fillColor: const Color(0xFFF9FAFB),
                                 ),
                                 validator: (value) {
                                   return Validators.validateLatitude(value);
@@ -431,7 +489,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                                     borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                                   ),
                                   filled: true,
-                                  fillColor: Color(0xFFF9FAFB),
+                                  fillColor: const Color(0xFFF9FAFB),
                                 ),
                                 validator: (value) {
                                   return Validators.validateLongitude(value);
@@ -453,7 +511,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                                   decoration: BoxDecoration(
                                     border: Border.all(color: Colors.grey[3]!, width: 1.5),
                                     borderRadius: BorderRadius.circular(12),
-                                    color: Color(0xFFF9FAFB),
+                                    color: const Color(0xFFF9FAFB),
                                   ),
                                   child: Row(
                                     children: [
@@ -484,7 +542,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                                   decoration: BoxDecoration(
                                     border: Border.all(color: Colors.grey[3]!, width: 1.5),
                                     borderRadius: BorderRadius.circular(12),
-                                    color: Color(0xFFF9FAFB),
+                                    color: const Color(0xFFF9FAFB),
                                   ),
                                   child: Row(
                                     children: [

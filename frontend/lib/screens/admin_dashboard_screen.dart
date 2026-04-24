@@ -145,16 +145,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
                         Container(
                           height: 180,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
+                            gradient: const LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                const Color(0xFF1E40AF),
-                                const Color(0xFF7C3AED),
-                                const Color(0xFFEC4899),
-                                const Color(0xFFF59E0B),
+                                Color(0xFF1E40AF),
+                                Color(0xFF7C3AED),
+                                Color(0xFFEC4899),
+                                Color(0xFFF59E0B),
                               ],
-                              stops: const [0.0, 0.33, 0.66, 1.0],
+                              stops: [0.0, 0.33, 0.66, 1.0],
                             ),
                             borderRadius: const BorderRadius.only(
                               bottomLeft: Radius.circular(30),
@@ -236,10 +236,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
                                   const Spacer(),
                                   SlideTransition(
                                     position: _slideAnimation,
-                                    child: Column(
+                                    child: const Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
+                                        Text(
                                           'Admin Dashboard',
                                           style: TextStyle(
                                             fontSize: 32,
@@ -255,8 +255,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
                                             ],
                                           ),
                                         ),
-                                        const SizedBox(height: 8),
-                                        const Text(
+                                        SizedBox(height: 8),
+                                        Text(
                                           'Manage your entire platform with complete control',
                                           style: TextStyle(
                                             color: Color(0xFFEDE9FE),
@@ -1343,9 +1343,9 @@ class _DoctorsManagementViewState extends State<DoctorsManagementView> {
             itemBuilder: (context, index) {
               final doctor = _doctors[index];
               return ListTile(
-                leading: CircleAvatar(
+                leading: const CircleAvatar(
                   backgroundColor: Colors.blue,
-                  child: const Icon(Icons.medical_services, color: Colors.white),
+                  child: Icon(Icons.medical_services, color: Colors.white),
                 ),
                 title: Text(
                   'Dr. ${doctor['first_name'] ?? ''} ${doctor['last_name'] ?? ''}',
@@ -1479,9 +1479,9 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
             itemBuilder: (context, index) {
               final pharmacy = _pharmacies[index];
               return ListTile(
-                leading: CircleAvatar(
+                leading: const CircleAvatar(
                   backgroundColor: Colors.orange,
-                  child: const Icon(Icons.store, color: Colors.white),
+                  child: Icon(Icons.store, color: Colors.white),
                 ),
                 title: Text(pharmacy['name'] ?? 'Unknown'),
                 subtitle: Text(pharmacy['location'] ?? ''),
@@ -1589,9 +1589,9 @@ class _OrdersManagementViewState extends State<OrdersManagementView> {
             itemBuilder: (context, index) {
               final order = _orders[index];
               return ListTile(
-                leading: CircleAvatar(
+                leading: const CircleAvatar(
                   backgroundColor: Colors.purple,
-                  child: const Icon(Icons.shopping_cart, color: Colors.white),
+                  child: Icon(Icons.shopping_cart, color: Colors.white),
                 ),
                 title: Text(
                   'Order #${order['order_id']} - ${order['pharmacy_name'] ?? ''}',

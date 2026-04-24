@@ -327,7 +327,7 @@ class _CreatePrescriptionScreenState extends State<CreatePrescriptionScreen> {
 
                           // Status
                           DropdownButtonFormField<String>(
-                            value: _status,
+                            initialValue: _status,
                             decoration: const InputDecoration(
                               labelText: 'Status',
                               border: OutlineInputBorder(),

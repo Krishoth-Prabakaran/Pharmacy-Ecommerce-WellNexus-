@@ -97,6 +97,15 @@ router.get("/test-email", authController.testEmail);
 router.post("/forgot-password", authController.forgotPassword);
 
 /**
+ * @route   POST /api/auth/verify-password-reset-otp
+ * @desc    Verify OTP for password reset and return reset token
+ * @access  Public
+ * @body    { email, otp }
+ * @returns { success, message, reset_token, user }
+ */
+router.post("/verify-password-reset-otp", authController.verifyPasswordResetOtp);
+
+/**
  * @route   POST /api/auth/verify-reset-token
  * @desc    Verify if reset token is valid
  * @access  Public

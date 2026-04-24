@@ -161,7 +161,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
             ),
             const SizedBox(height: 16),
             Text(
-              'No ${filter} appointments',
+              'No $filter appointments',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
@@ -339,7 +339,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> with TickerProv
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Appointment Details'),
+        title: const Text('Appointment Details'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
