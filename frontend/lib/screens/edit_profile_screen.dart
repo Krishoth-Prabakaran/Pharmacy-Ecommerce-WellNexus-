@@ -177,9 +177,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                         child: Column(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.info_outline,
-                              color: const Color(0xFF6366F1),
+                              color: Color(0xFF6366F1),
                               size: 32,
                             ),
                             const SizedBox(height: 12),

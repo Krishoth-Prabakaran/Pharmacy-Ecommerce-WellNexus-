@@ -1,5 +1,4 @@
-// screens/pharmacy_register_screen.dart
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/location_service.dart';
@@ -22,10 +21,8 @@ class PharmacyRegisterScreen extends StatefulWidget {
 
 class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-
   final _pharmacyNameController = TextEditingController();
 
-  // Branch data - list of maps
   List<Map<String, dynamic>> _branches = [
     {
       'branch_name': 'Main Branch',
@@ -43,21 +40,18 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
   String? _locationMessage;
   final LatLng _defaultLocation = LatLng(6.9271, 79.8612);
 
-  TimeOfDay? _openTime;
-  TimeOfDay? _closeTime;
-
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    print('📱 PharmacyRegisterScreen received: ${widget.userData}');
+    print('📱 PharmacyRegisterScreen received: ');
   }
 
-  Future<void> _selectTime(BuildContext context, bool isOpenTime) async {
+  Future<void> _selectTimeForBranch(BuildContext context, int branchIndex, bool isOpenTime) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: _branches[branchIndex][isOpenTime ? 'open_time' : 'close_time'] ?? TimeOfDay.now(),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -73,11 +67,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
 
     if (picked != null) {
       setState(() {
-        if (isOpenTime) {
-          _openTime = picked;
-        } else {
-          _closeTime = picked;
-        }
+        _branches[branchIndex][isOpenTime ? 'open_time' : 'close_time'] = picked;
       });
     }
   }
@@ -89,12 +79,22 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
     return DateFormat('HH:mm:ss').format(dt);
   }
 
-  void _registerPharmacy() async {
+  void _showSnackBar(String message, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<void> _registerPharmacy() async {
     if (_formKey.currentState!.validate()) {
-      // Validate that at least one branch has location
       bool hasValidBranch = false;
       for (var branch in _branches) {
-        if (branch['address'].isNotEmpty && branch['phone'].isNotEmpty) {
+        if (branch['address'].toString().trim().isNotEmpty && branch['phone'].toString().trim().isNotEmpty) {
           hasValidBranch = true;
           break;
         }
@@ -110,15 +110,15 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
       final pharmacyData = {
         'pharmacy_name': _pharmacyNameController.text.trim(),
         'branches': _branches.map((branch) => ({
-          'branch_name': branch['branch_name'],
-          'address': branch['address'],
-          'phone': branch['phone'],
-          'latitude': branch['latitude'],
-          'longitude': branch['longitude'],
-          'open_time': _formatTimeOfDay(branch['open_time']),
-          'close_time': _formatTimeOfDay(branch['close_time']),
-          'is_main_branch': branch['is_main_branch'],
-        })).toList(),
+              'branch_name': branch['branch_name'],
+              'address': branch['address'],
+              'phone': branch['phone'],
+              'latitude': branch['latitude'],
+              'longitude': branch['longitude'],
+              'open_time': _formatTimeOfDay(branch['open_time']),
+              'close_time': _formatTimeOfDay(branch['close_time']),
+              'is_main_branch': branch['is_main_branch'],
+            })).toList(),
         'username': widget.userData['username'],
         'email': widget.userData['email'],
         'user_id': widget.userData['user_id'],
@@ -158,7 +158,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Branch Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -211,8 +210,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
               ],
             ),
             const SizedBox(height: 16),
-
-            // Branch Name
             TextFormField(
               initialValue: branch['branch_name'],
               decoration: InputDecoration(
@@ -239,7 +236,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                   borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                 ),
                 filled: true,
-                fillColor: Color(0xFFF9FAFB),
+                fillColor: const Color(0xFFF9FAFB),
               ),
               onChanged: (value) {
                 _branches[index]['branch_name'] = value;
@@ -252,8 +249,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
               },
             ),
             const SizedBox(height: 12),
-
-            // Address
             TextFormField(
               initialValue: branch['address'],
               maxLines: 2,
@@ -281,7 +276,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                   borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                 ),
                 filled: true,
-                fillColor: Color(0xFFF9FAFB),
+                fillColor: const Color(0xFFF9FAFB),
               ),
               onChanged: (value) {
                 _branches[index]['address'] = value;
@@ -291,8 +286,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
               },
             ),
             const SizedBox(height: 12),
-
-            // Phone Number
             TextFormField(
               initialValue: branch['phone'],
               keyboardType: TextInputType.phone,
@@ -322,7 +315,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                   borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                 ),
                 filled: true,
-                fillColor: Color(0xFFF9FAFB),
+                fillColor: const Color(0xFFF9FAFB),
               ),
               onChanged: (value) {
                 _branches[index]['phone'] = value;
@@ -332,35 +325,26 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
               },
             ),
             const SizedBox(height: 12),
-
-            // Location selector
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : () => _useCurrentLocation(index),
-                    icon: const Icon(Icons.my_location),
-                    label: const Text('Use Current Location'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6366F1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _useCurrentLocation(index),
+                icon: const Icon(Icons.my_location),
+                label: const Text('Use Current Location'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-              ],
+              ),
             ),
             const SizedBox(height: 12),
-
-            // Map Location Picker
             MapLocationPicker(
               selectedLocation: _selectedLocation ?? _defaultLocation,
               onLocationSelected: (location) => _updateSelectedLocation(location, index),
             ),
-
-            // Open & Close Time
             const SizedBox(height: 12),
             const Text(
               'Operating Hours',
@@ -381,7 +365,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade300, width: 1.5),
                         borderRadius: BorderRadius.circular(12),
-                        color: Color(0xFFF9FAFB),
+                        color: const Color(0xFFF9FAFB),
                       ),
                       child: Row(
                         children: [
@@ -389,9 +373,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              branch['open_time'] == null
-                                  ? 'Open Time'
-                                  : (branch['open_time'] as TimeOfDay).format(context),
+                              branch['open_time'] == null ? 'Open Time' : (branch['open_time'] as TimeOfDay).format(context),
                               style: TextStyle(
                                 color: branch['open_time'] == null ? Colors.grey[500] : Colors.grey[800],
                                 fontWeight: FontWeight.w500,
@@ -412,7 +394,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade300, width: 1.5),
                         borderRadius: BorderRadius.circular(12),
-                        color: Color(0xFFF9FAFB),
+                        color: const Color(0xFFF9FAFB),
                       ),
                       child: Row(
                         children: [
@@ -420,9 +402,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              branch['close_time'] == null
-                                  ? 'Close Time'
-                                  : (branch['close_time'] as TimeOfDay).format(context),
+                              branch['close_time'] == null ? 'Close Time' : (branch['close_time'] as TimeOfDay).format(context),
                               style: TextStyle(
                                 color: branch['close_time'] == null ? Colors.grey[500] : Colors.grey[800],
                                 fontWeight: FontWeight.w500,
@@ -442,54 +422,19 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
     );
   }
 
-  Future<void> _selectTimeForBranch(BuildContext context, int branchIndex, bool isOpenTime) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _branches[branchIndex][isOpenTime ? 'open_time' : 'close_time'] ?? TimeOfDay.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.blue,
-              onPrimary: Colors.white,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        _branches[branchIndex][isOpenTime ? 'open_time' : 'close_time'] = picked;
-      });
-    }
-  }
-
-  void _showSnackBar(String message, Color color) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
   void _updateSelectedLocation(LatLng location, int branchIndex) {
     setState(() {
       _selectedLocation = location;
       _branches[branchIndex]['latitude'] = location.latitude;
       _branches[branchIndex]['longitude'] = location.longitude;
-      _locationMessage = 'Location selected for branch ${branchIndex + 1}';
+      _locationMessage = 'Location selected for branch ';
     });
   }
 
   void _addBranch() {
     setState(() {
       _branches.add({
-        'branch_name': 'Branch ${_branches.length + 1}',
+        'branch_name': 'Branch ',
         'address': '',
         'phone': '',
         'latitude': null,
@@ -505,7 +450,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
     if (_branches.length > 1) {
       setState(() {
         _branches.removeAt(index);
-        // If we removed the main branch, make the first one main
         if (_branches.isNotEmpty && !_branches.any((b) => b['is_main_branch'])) {
           _branches[0]['is_main_branch'] = true;
           _branches[0]['branch_name'] = 'Main Branch';
@@ -561,8 +505,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 20),
-
-                // Header
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: ShaderMask(
@@ -593,8 +535,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 30),
-
-                // Welcome Card
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   padding: const EdgeInsets.all(20),
@@ -615,8 +555,8 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
                             colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                           ),
                           shape: BoxShape.circle,
@@ -629,7 +569,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Welcome, ${widget.userData['username']}!',
+                        'Welcome, !',
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
@@ -649,10 +589,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 28),
-
-                // Form Card
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   padding: const EdgeInsets.all(24),
@@ -671,7 +608,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        // Pharmacy Name
                         TextFormField(
                           controller: _pharmacyNameController,
                           decoration: InputDecoration(
@@ -698,15 +634,13 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateTextField(value, fieldName: 'Pharmacy name', minLength: 2, maxLength: 100);
                           },
                         ),
                         const SizedBox(height: 24),
-
-                        // Branches Section
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -732,8 +666,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-
-                        // Branches List
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
@@ -742,10 +674,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                             return _buildBranchCard(index);
                           },
                         ),
-
                         const SizedBox(height: 28),
-
-                        // Register Button
                         Container(
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
@@ -799,7 +728,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 40),
               ],
             ),
@@ -812,10 +740,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
   @override
   void dispose() {
     _pharmacyNameController.dispose();
-    _addressController.dispose();
-    _phoneController.dispose();
-    _latitudeController.dispose();
-    _longitudeController.dispose();
     super.dispose();
   }
 }

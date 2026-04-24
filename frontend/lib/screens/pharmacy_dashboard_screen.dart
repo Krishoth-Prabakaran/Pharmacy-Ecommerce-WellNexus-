@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import '../services/auth_service.dart';
 import '../services/pharmacy_service.dart';
 import '../services/pharmacy_inventory_service.dart';
+import '../widgets/map_location_picker.dart';
 import 'low_stock_notification_screen.dart';
 import 'pharmacy_sales_screen.dart';
 
@@ -1807,7 +1809,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
 
     try {
       if (branch == null) {
-        final response = await _pharmacyService.createBranch(payload);
+        final response = await _pharmacyService.createBranch(_pharmacy!['pharmacy_id'], payload);
         if (response['success'] == true) {
           _showSnackBar('Branch added successfully', Colors.green);
         } else {

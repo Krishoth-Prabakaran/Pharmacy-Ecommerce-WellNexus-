@@ -158,7 +158,7 @@ class _LowStockNotificationScreenState extends State<LowStockNotificationScreen>
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white24,
                     shape: BoxShape.circle,
                   ),

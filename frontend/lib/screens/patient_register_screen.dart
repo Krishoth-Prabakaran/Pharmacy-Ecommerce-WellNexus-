@@ -244,8 +244,8 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
                             colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                           ),
                           shape: BoxShape.circle,
@@ -327,7 +327,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateName(value, fieldName: 'First name');
@@ -362,7 +362,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateName(value, fieldName: 'Last name');
@@ -400,7 +400,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validatePhoneNumber(value);
@@ -416,7 +416,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey[300]!),
                               borderRadius: BorderRadius.circular(12),
-                              color: Color(0xFFF9FAFB),
+                              color: const Color(0xFFF9FAFB),
                             ),
                             child: Row(
                               children: [
@@ -445,7 +445,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.grey[300]!, width: 1.5),
-                            color: Color(0xFFF9FAFB),
+                            color: const Color(0xFFF9FAFB),
                           ),
                           child: DropdownButtonFormField<String>(
                             decoration: InputDecoration(

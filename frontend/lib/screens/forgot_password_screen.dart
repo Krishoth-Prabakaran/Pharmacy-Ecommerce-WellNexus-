@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../utils/validators.dart';
+import 'verify_email_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({Key? key}) : super(key: key);
@@ -40,44 +41,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
         if (result['success']) {
           _showSnackBar(
-            'If the email exists, a password reset link has been sent.',
+            'OTP sent to your email!',
             Colors.green,
           );
-          // Optionally navigate back or show success message
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('📧 Email Sent'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.mark_email_read_outlined,
-                    size: 64,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'If an account exists with this email, you will receive a password reset link shortly.',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Please check your inbox and spam folder.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+          // Navigate to verify email screen for password reset
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VerifyEmailScreen(
+                userData: {
+                  'email': _emailController.text.trim(),
+                  'isPasswordReset': true,
+                },
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(ctx); // Close dialog
-                    Navigator.pop(ctx); // Go back to login
-                  },
-                  child: const Text('OK'),
-                ),
-              ],
             ),
           );
         } else {
@@ -209,7 +185,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Enter your email address and we\'ll send you a link to reset your password.',
+                          'Enter your email address and we\'ll send you an OTP to reset your password.',
                           style: TextStyle(
                             fontSize: 14,
                             color: Color(0xFF6B7280),
@@ -253,7 +229,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               ),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateEmail(value);
@@ -300,7 +276,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                         ),
                                       )
                                     : const Text(
-                                        'Send Reset Link',
+                                        'Send OTP',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,

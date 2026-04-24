@@ -210,7 +210,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) => Validators.validateUsername(value),
                         ),
@@ -244,7 +244,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) => Validators.validateEmail(value),
                         ),
@@ -295,7 +295,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) => Validators.validatePassword(value),
                         ),
@@ -343,7 +343,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) => Validators.validateConfirmPassword(value, _passwordController.text),
                         ),
@@ -354,7 +354,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.grey[300]!, width: 1.5),
-                            color: Color(0xFFF9FAFB),
+                            color: const Color(0xFFF9FAFB),
                           ),
                           child: DropdownButtonFormField<String>(
                             initialValue: _selectedRole,
@@ -372,11 +372,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                            items: [
+                            items: const [
                               DropdownMenuItem(
                                 value: 'patient',
                                 child: Row(
-                                  children: const [
+                                  children: [
                                     Icon(Icons.health_and_safety, size: 20, color: Color(0xFF6366F1)),
                                     SizedBox(width: 8),
                                     Text('Patient', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -386,7 +386,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               DropdownMenuItem(
                                 value: 'doctor',
                                 child: Row(
-                                  children: const [
+                                  children: [
                                     Icon(Icons.medical_services, size: 20, color: Color(0xFF6366F1)),
                                     SizedBox(width: 8),
                                     Text('Doctor', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -396,7 +396,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               DropdownMenuItem(
                                 value: 'pharmacist',
                                 child: Row(
-                                  children: const [
+                                  children: [
                                     Icon(Icons.local_pharmacy, size: 20, color: Color(0xFF6366F1)),
                                     SizedBox(width: 8),
                                     Text('Pharmacist', style: TextStyle(fontWeight: FontWeight.w600)),

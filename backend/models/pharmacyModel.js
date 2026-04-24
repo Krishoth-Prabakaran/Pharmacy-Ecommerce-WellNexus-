@@ -509,3 +509,5 @@ const PharmacyModel = {
     return result.rows;
   }
 };
+
+module.exports = PharmacyModel;

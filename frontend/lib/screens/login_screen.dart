@@ -310,7 +310,7 @@ void _showVerificationDialog(String email) {
                               ),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateEmail(value);
@@ -368,7 +368,7 @@ void _showVerificationDialog(String email) {
                               ),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
