@@ -198,3 +198,63 @@ exports.getLowStockByPharmacy = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// ======= SALES =======
+exports.createSale = async (req, res) => {
+  try {
+    const sale = await PharmacyInventoryModel.createSale(req.body);
+    res.status(201).json({ success: true, sale });
+  } catch (err) {
+    console.error('ERROR CREATING SALE:', err.message);
+    if (err.message.includes('Insufficient stock')) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.getSalesByPharmacy = async (req, res) => {
+  try {
+    const { pharmacyId } = req.params;
+    const options = {
+      limit: parseInt(req.query.limit) || 50,
+      offset: parseInt(req.query.offset) || 0,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate
+    };
+    const sales = await PharmacyInventoryModel.findSalesByPharmacy(pharmacyId, options);
+    res.status(200).json({ success: true, sales, count: sales.length });
+  } catch (err) {
+    console.error('ERROR GETTING SALES:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.getSaleById = async (req, res) => {
+  try {
+    const { saleId } = req.params;
+    const sale = await PharmacyInventoryModel.findSaleById(saleId);
+    if (!sale) {
+      return res.status(404).json({ success: false, message: 'Sale not found' });
+    }
+    res.status(200).json({ success: true, sale });
+  } catch (err) {
+    console.error('ERROR GETTING SALE:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.getSalesStats = async (req, res) => {
+  try {
+    const { pharmacyId } = req.params;
+    const options = {
+      startDate: req.query.startDate,
+      endDate: req.query.endDate
+    };
+    const stats = await PharmacyInventoryModel.getSalesStats(pharmacyId, options);
+    res.status(200).json({ success: true, stats });
+  } catch (err) {
+    console.error('ERROR GETTING SALES STATS:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

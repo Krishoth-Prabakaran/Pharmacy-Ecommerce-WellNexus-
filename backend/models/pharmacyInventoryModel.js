@@ -342,11 +342,238 @@ const PharmacyInventoryModel = {
        LEFT JOIN dealers d ON s.dealer_id = d.dealer_id
        LEFT JOIN pharmacies p ON s.pharmacy_id = p.pharmacy_id
        ${whereClause}
-       ORDER BY s.stock_id DESC`;
-
+       ORDER BY s.quantity DESC, s.stock_id DESC`;
     const result = await pool.query(query, params);
     return result.rows;
   },
+
+  // ======= SALES =======
+
+  /**
+   * Create a new sale
+   * @param {Object} saleData - Sale details
+   * @returns {Object} Created sale
+   */
+  async createSale(saleData) {
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // Create the sale record
+      const saleResult = await client.query(
+        `INSERT INTO sales (prescription_id, patient_id, pharmacy_id, sale_date)
+         VALUES ($1, $2, $3, $4)
+         RETURNING *`,
+        [
+          saleData.prescription_id || null,
+          saleData.patient_id,
+          saleData.pharmacy_id,
+          saleData.sale_date || new Date()
+        ]
+      );
+
+      const sale = saleResult.rows[0];
+
+      // Add sale items and update stock
+      if (saleData.items && saleData.items.length > 0) {
+        for (const item of saleData.items) {
+          // Check if enough stock is available
+          const stockCheck = await client.query(
+            `SELECT ps.quantity, mv.price
+             FROM pharmacy_stock ps
+             JOIN medicine_variants mv ON ps.variant_id = mv.variant_id
+             WHERE ps.pharmacy_id = $1 AND ps.variant_id = $2 AND ps.quantity >= $3
+             ORDER BY ps.expiry_date ASC
+             LIMIT 1`,
+            [saleData.pharmacy_id, item.variant_id, item.quantity]
+          );
+
+          if (stockCheck.rows.length === 0) {
+            throw new Error(`Insufficient stock for variant ${item.variant_id}`);
+          }
+
+          // Create sale item
+          await client.query(
+            `INSERT INTO sale_items (sale_id, variant_id, quantity)
+             VALUES ($1, $2, $3)`,
+            [sale.sale_id, item.variant_id, item.quantity]
+          );
+
+          // Update stock quantity (reduce by sold amount)
+          await client.query(
+            `UPDATE pharmacy_stock
+             SET quantity = quantity - $1
+             WHERE pharmacy_id = $2 AND variant_id = $3 AND quantity >= $1
+             ORDER BY expiry_date ASC
+             LIMIT 1`,
+            [item.quantity, saleData.pharmacy_id, item.variant_id]
+          );
+        }
+      }
+
+      await client.query('COMMIT');
+      return sale;
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  },
+
+  /**
+   * Get sales by pharmacy
+   * @param {number} pharmacyId - Pharmacy ID
+   * @param {Object} options - Query options (limit, offset, date range)
+   * @returns {Array} List of sales with items
+   */
+  async findSalesByPharmacy(pharmacyId, options = {}) {
+    const limit = options.limit || 50;
+    const offset = options.offset || 0;
+
+    let whereClause = 'WHERE s.pharmacy_id = $1';
+    const params = [pharmacyId];
+    let paramIndex = 2;
+
+    if (options.startDate) {
+      whereClause += ` AND s.sale_date >= $${paramIndex}`;
+      params.push(options.startDate);
+      paramIndex++;
+    }
+
+    if (options.endDate) {
+      whereClause += ` AND s.sale_date <= $${paramIndex}`;
+      params.push(options.endDate);
+      paramIndex++;
+    }
+
+    const salesResult = await pool.query(
+      `SELECT
+        s.sale_id, s.prescription_id, s.patient_id, s.pharmacy_id, s.sale_date,
+        p.first_name as patient_first_name, p.last_name as patient_last_name,
+        pr.sms_code as prescription_code
+       FROM sales s
+       LEFT JOIN patients p ON s.patient_id = p.patient_id
+       LEFT JOIN prescriptions pr ON s.prescription_id = pr.prescription_id
+       ${whereClause}
+       ORDER BY s.sale_date DESC
+       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...params, limit, offset]
+    );
+
+    // Get items for each sale
+    const sales = [];
+    for (const sale of salesResult.rows) {
+      const itemsResult = await pool.query(
+        `SELECT
+          si.quantity,
+          mv.variant_name, mv.strength, mv.form, mv.price,
+          m.name as medicine_name, m.brand
+         FROM sale_items si
+         JOIN medicine_variants mv ON si.variant_id = mv.variant_id
+         JOIN medicines m ON mv.medicine_id = m.medicine_id
+         WHERE si.sale_id = $1`,
+        [sale.sale_id]
+      );
+
+      sales.push({
+        ...sale,
+        items: itemsResult.rows,
+        total_amount: itemsResult.rows.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+      });
+    }
+
+    return sales;
+  },
+
+  /**
+   * Get sale by ID with full details
+   * @param {number} saleId - Sale ID
+   * @returns {Object} Sale with items and patient details
+   */
+  async findSaleById(saleId) {
+    const saleResult = await pool.query(
+      `SELECT
+        s.sale_id, s.prescription_id, s.patient_id, s.pharmacy_id, s.sale_date,
+        p.first_name as patient_first_name, p.last_name as patient_last_name, p.phone as patient_phone,
+        ph.pharmacy_name,
+        pr.sms_code as prescription_code, pr.doctor_name
+       FROM sales s
+       LEFT JOIN patients p ON s.patient_id = p.patient_id
+       LEFT JOIN pharmacies ph ON s.pharmacy_id = ph.pharmacy_id
+       LEFT JOIN prescriptions pr ON s.prescription_id = pr.prescription_id
+       WHERE s.sale_id = $1`,
+      [saleId]
+    );
+
+    if (saleResult.rows.length === 0) {
+      return null;
+    }
+
+    const sale = saleResult.rows[0];
+
+    // Get sale items
+    const itemsResult = await pool.query(
+      `SELECT
+        si.quantity,
+        mv.variant_name, mv.strength, mv.form, mv.price,
+        m.name as medicine_name, m.brand, m.manufacturer
+       FROM sale_items si
+       JOIN medicine_variants mv ON si.variant_id = mv.variant_id
+       JOIN medicines m ON mv.medicine_id = m.medicine_id
+       WHERE si.sale_id = $1`,
+      [saleId]
+    );
+
+    return {
+      ...sale,
+      items: itemsResult.rows,
+      total_amount: itemsResult.rows.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+      item_count: itemsResult.rows.length
+    };
+  },
+
+  /**
+   * Get sales statistics for pharmacy
+   * @param {number} pharmacyId - Pharmacy ID
+   * @param {Object} options - Date range options
+   * @returns {Object} Sales statistics
+   */
+  async getSalesStats(pharmacyId, options = {}) {
+    let whereClause = 'WHERE s.pharmacy_id = $1';
+    const params = [pharmacyId];
+    let paramIndex = 2;
+
+    if (options.startDate) {
+      whereClause += ` AND s.sale_date >= $${paramIndex}`;
+      params.push(options.startDate);
+      paramIndex++;
+    }
+
+    if (options.endDate) {
+      whereClause += ` AND s.sale_date <= $${paramIndex}`;
+      params.push(options.endDate);
+      paramIndex++;
+    }
+
+    const statsResult = await pool.query(
+      `SELECT
+        COUNT(DISTINCT s.sale_id) as total_sales,
+        SUM(si.quantity) as total_items_sold,
+        SUM(si.quantity * mv.price) as total_revenue,
+        AVG(si.quantity * mv.price) as avg_sale_amount
+       FROM sales s
+       JOIN sale_items si ON s.sale_id = si.sale_id
+       JOIN medicine_variants mv ON si.variant_id = mv.variant_id
+       ${whereClause}`,
+      params
+    );
+
+    return statsResult.rows[0];
+  }
+
 };
 
 module.exports = PharmacyInventoryModel;

@@ -16,7 +16,7 @@ async function createTables() {
         doctor_license INTEGER NULL,
         CONSTRAINT prescriptions_pkey PRIMARY KEY (prescription_id),
         CONSTRAINT prescriptions_sms_code_key UNIQUE (sms_code),
-        CONSTRAINT prescriptions_doctor_license_fkey FOREIGN KEY (doctor_license) REFERENCES doctors ("doctor_License"),
+        CONSTRAINT prescriptions_doctor_license_fkey FOREIGN KEY (doctor_license) REFERENCES doctors (doctor_id),
         CONSTRAINT prescriptions_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES patients (patient_id) ON DELETE CASCADE
       ) TABLESPACE pg_default;
     `);

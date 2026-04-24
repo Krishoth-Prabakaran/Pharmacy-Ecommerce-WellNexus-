@@ -337,11 +337,11 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                             prefixIconConstraints: const BoxConstraints(minWidth: 0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!, width: 1.5),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -416,11 +416,11 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                             prefixIconConstraints: const BoxConstraints(minWidth: 0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!, width: 1.5),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -454,11 +454,11 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                             prefixIconConstraints: const BoxConstraints(minWidth: 0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!, width: 1.5),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -490,11 +490,11 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                             prefixIconConstraints: const BoxConstraints(minWidth: 0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!, width: 1.5),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -526,11 +526,11 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                             prefixIconConstraints: const BoxConstraints(minWidth: 0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!, width: 1.5),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -551,7 +551,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey[3]!, width: 1.5),
+                                    border: Border.all(color: Colors.grey.shade300, width: 1.5),
                                     borderRadius: BorderRadius.circular(12),
                                     color: Color(0xFFF9FAFB),
                                   ),
@@ -582,7 +582,7 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey[3]!, width: 1.5),
+                                    border: Border.all(color: Colors.grey.shade300, width: 1.5),
                                     borderRadius: BorderRadius.circular(12),
                                     color: Color(0xFFF9FAFB),
                                   ),
@@ -627,11 +627,11 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                             prefixIconConstraints: const BoxConstraints(minWidth: 0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!, width: 1.5),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -660,11 +660,11 @@ class _DoctorRegisterScreenState extends State<DoctorRegisterScreen> {
                             prefixIconConstraints: const BoxConstraints(minWidth: 0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!, width: 1.5),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),

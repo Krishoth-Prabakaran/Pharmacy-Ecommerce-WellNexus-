@@ -399,6 +399,46 @@ class PatientService {
     await prefs.setBool('patient_details_completed', completed);
   }
 
+  // ==================== GET NEARBY PHARMACIES ====================
+  Future<Map<String, dynamic>> getNearbyPharmacies(double latitude, double longitude, {double radius = 10.0}) async {
+    try {
+      final token = await AuthService.getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      print('🏥 Finding nearby pharmacies at $latitude, $longitude (radius: ${radius}km)');
+
+      final uri = Uri.parse('http://localhost:5000/api/pharmacies/nearby').replace(
+        queryParameters: {
+          'latitude': latitude.toString(),
+          'longitude': longitude.toString(),
+          'radius': radius.toString(),
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Nearby pharmacies response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data as Map<String, dynamic>;
+      }
+
+      return {'success': false, 'message': 'Failed to load nearby pharmacies'};
+    } catch (e) {
+      print('❌ Get nearby pharmacies error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
   static Future<bool> isPatientDetailsCompleted() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('patient_details_completed') ?? false;

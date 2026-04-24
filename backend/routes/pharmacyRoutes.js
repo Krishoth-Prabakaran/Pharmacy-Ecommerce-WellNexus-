@@ -27,4 +27,20 @@ router.put("/:pharmacyId", pharmacyController.updatePharmacy);
 // Delete pharmacy
 router.delete("/:pharmacyId", pharmacyController.deletePharmacy);
 
+// Branch management routes
+// Get all branches for a pharmacy
+router.get("/:pharmacyId/branches", pharmacyController.getBranches);
+
+// Create a new branch
+router.post("/:pharmacyId/branches", pharmacyController.createBranch);
+
+// Update a branch
+router.put("/branches/:branchId", pharmacyController.updateBranch);
+
+// Set main branch
+router.put("/:pharmacyId/branches/:branchId/set-main", pharmacyController.setMainBranch);
+
+// Delete a branch
+router.delete("/branches/:branchId", pharmacyController.deleteBranch);
+
 module.exports = router;

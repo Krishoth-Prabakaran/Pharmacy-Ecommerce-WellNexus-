@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/patient_service.dart';
 import '../services/auth_service.dart';
+import '../screens/pharmacy_finder_screen.dart';
 import 'edit_profile_screen.dart';
 
 /// Patient Dashboard Screen

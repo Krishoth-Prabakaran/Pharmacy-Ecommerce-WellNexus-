@@ -30,4 +30,10 @@ router.delete('/pharmacy-stock/:stockId', inventoryController.deleteStock);
 // Low stock alerts
 router.get('/pharmacy-stock/:pharmacyId/low-stock', inventoryController.getLowStockByPharmacy);
 
+// Sales
+router.post('/sales', inventoryController.createSale);
+router.get('/sales/pharmacy/:pharmacyId', inventoryController.getSalesByPharmacy);
+router.get('/sales/:saleId', inventoryController.getSaleById);
+router.get('/sales/stats/:pharmacyId', inventoryController.getSalesStats);
+
 module.exports = router;

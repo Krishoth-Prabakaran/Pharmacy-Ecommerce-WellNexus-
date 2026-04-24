@@ -351,11 +351,11 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                             prefixIconConstraints: const BoxConstraints(minWidth: 0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!, width: 1.5),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),

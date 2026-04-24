@@ -111,4 +111,21 @@ class PharmacyInventoryService {
   Future<Map<String, dynamic>> getLowStock(int pharmacyId, {int threshold = 10}) async {
     return await _request('GET', '/pharmacy-stock/$pharmacyId/low-stock?threshold=$threshold');
   }
+
+  // Sales methods
+  Future<Map<String, dynamic>> createSale(Map<String, dynamic> data) async {
+    return await _request('POST', '/sales', body: data);
+  }
+
+  Future<Map<String, dynamic>> getSalesByPharmacy(int pharmacyId) async {
+    return await _request('GET', '/sales/pharmacy/$pharmacyId');
+  }
+
+  Future<Map<String, dynamic>> getSaleById(int saleId) async {
+    return await _request('GET', '/sales/$saleId');
+  }
+
+  Future<Map<String, dynamic>> getSalesStats(int pharmacyId) async {
+    return await _request('GET', '/sales/stats/$pharmacyId');
+  }
 }
