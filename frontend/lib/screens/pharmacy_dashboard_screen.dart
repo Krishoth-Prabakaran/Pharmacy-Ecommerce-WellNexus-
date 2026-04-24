@@ -234,17 +234,17 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                       children: [
                         Chip(
                           avatar: const Icon(Icons.timer, color: Colors.white70, size: 18),
-                          backgroundColor: Colors.white24,
+                          backgroundColor: const Color.from(alpha: 0.235, red: 0, green: 0, blue: 0),
                           label: Text('Open: ${_pharmacy?['open_time'] ?? 'N/A'}', style: const TextStyle(color: Colors.white)),
                         ),
                         Chip(
                           avatar: const Icon(Icons.timer_off, color: Colors.white70, size: 18),
-                          backgroundColor: Colors.white24,
+                          backgroundColor: const Color.fromARGB(60, 0, 0, 0),
                           label: Text('Close: ${_pharmacy?['close_time'] ?? 'N/A'}', style: const TextStyle(color: Colors.white)),
                         ),
                         Chip(
                           avatar: const Icon(Icons.phone, color: Colors.white70, size: 18),
-                          backgroundColor: Colors.white24,
+                          backgroundColor: const Color.fromARGB(60, 0, 0, 0),
                           label: Text(_pharmacy?['phone'] ?? 'No phone', style: const TextStyle(color: Colors.white)),
                         ),
                       ],
