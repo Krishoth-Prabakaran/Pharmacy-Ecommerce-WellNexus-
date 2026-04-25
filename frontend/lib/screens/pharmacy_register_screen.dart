@@ -31,7 +31,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
 
   // Branches management
   late List<Map<String, dynamic>> _branches;
-  final LatLng _defaultLocation = const LatLng(6.9271, 80.7789); // Sri Lanka center
+  final LatLng _defaultLocation = const LatLng(6.9271, 79.8612); // Sri Lanka center
   LatLng? _selectedLocation;
 
   @override
@@ -52,10 +52,10 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
     print('📱 PharmacyRegisterScreen received: ${widget.userData['username']}');
   }
 
-  Future<void> _selectTimeForBranch(BuildContext context, int branchIndex, bool isOpenTime) async {
+  Future<void> _selectTime(BuildContext context, bool isOpenTime) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: _branches[branchIndex][isOpenTime ? 'open_time' : 'close_time'] ?? TimeOfDay.now(),
+      initialTime: isOpenTime ? (_openTime ?? TimeOfDay.now()) : (_closeTime ?? TimeOfDay.now()),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -71,9 +71,62 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
 
     if (picked != null) {
       setState(() {
-        _branches[branchIndex][isOpenTime ? 'open_time' : 'close_time'] = picked;
+        if (isOpenTime) {
+          _openTime = picked;
+        } else {
+          _closeTime = picked;
+        }
       });
     }
+  }
+
+  void _setMainBranch(int index) {
+    setState(() {
+      for (var i = 0; i < _branches.length; i++) {
+        _branches[i]['is_main_branch'] = i == index;
+      }
+    });
+  }
+
+  void _removeBranch(int index) {
+    if (_branches.length <= 1) return;
+    setState(() {
+      _branches.removeAt(index);
+    });
+  }
+
+  Future<void> _useCurrentLocation(int index) async {
+    try {
+      final position = await LocationService.getCurrentLocation();
+      setState(() {
+        _branches[index]['latitude'] = position.latitude;
+        _branches[index]['longitude'] = position.longitude;
+      });
+    } catch (error) {
+      _showSnackBar('Failed to get current location: $error', Colors.red);
+    }
+  }
+
+  void _updateSelectedLocation(LatLng location, int index) {
+    setState(() {
+      _branches[index]['latitude'] = location.latitude;
+      _branches[index]['longitude'] = location.longitude;
+    });
+  }
+
+  void _addBranch() {
+    setState(() {
+      _branches.add({
+        'branch_name': 'Branch ${_branches.length + 1}',
+        'address': '',
+        'phone': '',
+        'latitude': null,
+        'longitude': null,
+        'open_time': null,
+        'close_time': null,
+        'is_main_branch': false,
+      });
+    });
   }
 
   String? _formatTimeOfDay(TimeOfDay? time) {
@@ -158,76 +211,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
       } else {
         _showSnackBar(result['message'], Colors.red);
       }
-    }
-  }
-
-  void _addBranch() {
-    setState(() {
-      _branches.add({
-        'branch_name': 'Branch ${_branches.length}',
-        'address': '',
-        'phone': '',
-        'latitude': null,
-        'longitude': null,
-        'open_time': null,
-        'close_time': null,
-        'is_main_branch': false,
-      });
-    });
-  }
-
-  void _removeBranch(int index) {
-    if (_branches.length <= 1) {
-      _showSnackBar('At least one branch is required', Colors.orange);
-      return;
-    }
-    setState(() => _branches.removeAt(index));
-  }
-
-  void _setMainBranch(int index) {
-    setState(() {
-      for (int i = 0; i < _branches.length; i++) {
-        _branches[i]['is_main_branch'] = i == index;
-      }
-    });
-  }
-
-  Future<void> _useCurrentLocation(int branchIndex) async {
-    try {
-      final position = await LocationService.getCurrentLocation();
-      setState(() {
-        _branches[branchIndex]['latitude'] = position.latitude;
-        _branches[branchIndex]['longitude'] = position.longitude;
-        _selectedLocation = LatLng(position.latitude, position.longitude);
-      });
-      _showSnackBar('Location updated', Colors.green);
-    } catch (e) {
-      _showSnackBar('Location error: $e', Colors.red);
-    }
-  }
-
-  void _updateSelectedLocation(LatLng location, int branchIndex) {
-    setState(() {
-      _selectedLocation = location;
-      _branches[branchIndex]['latitude'] = location.latitude;
-      _branches[branchIndex]['longitude'] = location.longitude;
-    });
-  }
-
-  Future<void> _selectTime(BuildContext context, bool isOpenTime) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: isOpenTime ? (_openTime ?? TimeOfDay.now()) : (_closeTime ?? TimeOfDay.now()),
-    );
-
-    if (picked != null) {
-      setState(() {
-        if (isOpenTime) {
-          _openTime = picked;
-        } else {
-          _closeTime = picked;
-        }
-      });
     }
   }
 
@@ -443,7 +426,9 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
 
             // Map Location Picker
             MapLocationPicker(
-              selectedLocation: _selectedLocation ?? _defaultLocation,
+              selectedLocation: branch['latitude'] != null && branch['longitude'] != null
+                  ? LatLng(branch['latitude'] as double, branch['longitude'] as double)
+                  : _defaultLocation,
               onLocationSelected: (location) => _updateSelectedLocation(location, index),
             ),
 
@@ -551,284 +536,6 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
         _branches[branchIndex][isOpenTime ? 'open_time' : 'close_time'] = picked;
       });
     }
-  }
-
-  Widget _buildBranchCard(int index) {
-    final branch = _branches[index];
-    final isMainBranch = branch['is_main_branch'] == true;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      branch['branch_name'],
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1F2937),
-                      ),
-                    ),
-                    if (isMainBranch) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6366F1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          'Main',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                Row(
-                  children: [
-                    if (!isMainBranch)
-                      IconButton(
-                        onPressed: () => _setMainBranch(index),
-                        icon: const Icon(Icons.star_border, color: Color(0xFF6366F1)),
-                        tooltip: 'Set as Main Branch',
-                      ),
-                    if (_branches.length > 1)
-                      IconButton(
-                        onPressed: () => _removeBranch(index),
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        tooltip: 'Remove Branch',
-                      ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              initialValue: branch['branch_name'],
-              decoration: InputDecoration(
-                labelText: 'Branch Name',
-                labelStyle: const TextStyle(
-                  color: Color(0xFF9CA3AF),
-                  fontWeight: FontWeight.w600,
-                ),
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(left: 16, right: 12),
-                  child: Icon(Icons.store_outlined, color: Colors.grey[400]),
-                ),
-                prefixIconConstraints: const BoxConstraints(minWidth: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
-                ),
-                filled: true,
-                fillColor: const Color(0xFFF9FAFB),
-              ),
-              onChanged: (value) {
-                _branches[index]['branch_name'] = value;
-              },
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Branch name is required';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              initialValue: branch['address'],
-              maxLines: 2,
-              decoration: InputDecoration(
-                labelText: 'Address',
-                labelStyle: const TextStyle(
-                  color: Color(0xFF9CA3AF),
-                  fontWeight: FontWeight.w600,
-                ),
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(left: 16, right: 12),
-                  child: Icon(Icons.location_on_outlined, color: Colors.grey[400]),
-                ),
-                prefixIconConstraints: const BoxConstraints(minWidth: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
-                ),
-                filled: true,
-                fillColor: const Color(0xFFF9FAFB),
-              ),
-              onChanged: (value) {
-                _branches[index]['address'] = value;
-              },
-              validator: (value) {
-                return Validators.validateTextField(value, fieldName: 'Address', minLength: 5, maxLength: 255);
-              },
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              initialValue: branch['phone'],
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: 'Phone Number',
-                labelStyle: const TextStyle(
-                  color: Color(0xFF9CA3AF),
-                  fontWeight: FontWeight.w600,
-                ),
-                hintText: '0XXXXXXXXX or +94XXXXXXXXX',
-                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(left: 16, right: 12),
-                  child: Icon(Icons.phone_outlined, color: Colors.grey[400]),
-                ),
-                prefixIconConstraints: const BoxConstraints(minWidth: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
-                ),
-                filled: true,
-                fillColor: const Color(0xFFF9FAFB),
-              ),
-              onChanged: (value) {
-                _branches[index]['phone'] = value;
-              },
-              validator: (value) {
-                return Validators.validatePhoneNumber(value);
-              },
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _useCurrentLocation(index),
-                icon: const Icon(Icons.my_location),
-                label: const Text('Use Current Location'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            MapLocationPicker(
-              selectedLocation: _selectedLocation ?? _defaultLocation,
-              onLocationSelected: (location) => _updateSelectedLocation(location, index),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Operating Hours',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF374151),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _selectTimeForBranch(context, index, true),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300, width: 1.5),
-                        borderRadius: BorderRadius.circular(12),
-                        color: const Color(0xFFF9FAFB),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.access_time_outlined, color: Colors.grey[400], size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              branch['open_time'] == null ? 'Open Time' : (branch['open_time'] as TimeOfDay).format(context),
-                              style: TextStyle(
-                                color: branch['open_time'] == null ? Colors.grey[500] : Colors.grey[800],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _selectTimeForBranch(context, index, false),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300, width: 1.5),
-                        borderRadius: BorderRadius.circular(12),
-                        color: const Color(0xFFF9FAFB),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.access_time_outlined, color: Colors.grey[400], size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              branch['close_time'] == null ? 'Close Time' : (branch['close_time'] as TimeOfDay).format(context),
-                              style: TextStyle(
-                                color: branch['close_time'] == null ? Colors.grey[500] : Colors.grey[800],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -1087,6 +794,14 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 16),
+
+                        if (_branches.isNotEmpty) ..._branches
+                            .asMap()
+                            .entries
+                            .map((entry) => _buildBranchCard(entry.key))
+                            .toList(),
+
                         const SizedBox(height: 16),
 
                         // Open & Close Time

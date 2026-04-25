@@ -1,7 +1,9 @@
 // screens/forgot_password_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import '../utils/validators.dart';
+import '../utils/keyboard_shortcuts.dart';
 import 'verify_email_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -14,7 +16,24 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  late FocusNode _emailFocus;
+  late FocusNode _submitButtonFocus;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailFocus = FocusNode();
+    _submitButtonFocus = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _emailFocus.dispose();
+    _submitButtonFocus.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
 
   void _showSnackBar(String message, Color color) {
     if (!mounted) return;
@@ -198,7 +217,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         // Email Field
                         TextFormField(
                           controller: _emailController,
+                          focusNode: _emailFocus,
                           keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) {
+                            _emailFocus.unfocus();
+                            _submitButtonFocus.requestFocus();
+                          },
                           decoration: InputDecoration(
                             labelText: 'Email Address',
                             labelStyle: const TextStyle(
@@ -238,16 +263,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         const SizedBox(height: 28),
 
                         // Submit Button
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFF6366F1),
-                                Color(0xFF8B5CF6),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
+                        Focus(
+                          focusNode: _submitButtonFocus,
+                          onKey: (node, event) {
+                            if (event.isKeyPressed(LogicalKeyboardKey.enter) && !_isLoading) {
+                              _submitForgotPassword();
+                              return KeyEventResult.handled;
+                            }
+                            return KeyEventResult.ignored;
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF6366F1),
+                                  Color(0xFF8B5CF6),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
                               BoxShadow(
                                 color: const Color(0xFF6366F1).withOpacity(0.4),
                                 blurRadius: 15,
@@ -288,6 +322,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               ),
                             ),
                           ),
+                          ),
                         ),
                       ],
                     ),
@@ -301,11 +336,5 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
   }
 }

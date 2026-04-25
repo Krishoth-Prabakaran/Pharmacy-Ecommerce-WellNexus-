@@ -1,7 +1,9 @@
 ﻿// screens/login_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import '../utils/validators.dart';
+import '../utils/keyboard_shortcuts.dart';
 import 'register_screen.dart';
 import 'verify_email_screen.dart';
 import 'forgot_password_screen.dart';
@@ -17,8 +19,29 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  late FocusNode _emailFocus;
+  late FocusNode _passwordFocus;
+  late FocusNode _loginButtonFocus;
   bool _isLoading = false;
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailFocus = FocusNode();
+    _passwordFocus = FocusNode();
+    _loginButtonFocus = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _loginButtonFocus.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   // In _login() method, update the error handling:
 
@@ -279,7 +302,10 @@ void _showVerificationDialog(String email) {
                         // Email Field
                         TextFormField(
                           controller: _emailController,
+                          focusNode: _emailFocus,
                           keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                           decoration: InputDecoration(
                             labelText: 'Email Address',
                             labelStyle: const TextStyle(
@@ -321,7 +347,13 @@ void _showVerificationDialog(String email) {
                         // Password Field
                         TextFormField(
                           controller: _passwordController,
+                          focusNode: _passwordFocus,
                           obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) {
+                            _passwordFocus.unfocus();
+                            _loginButtonFocus.requestFocus();
+                          },
                           decoration: InputDecoration(
                             labelText: 'Password',
                             labelStyle: const TextStyle(
@@ -405,53 +437,63 @@ void _showVerificationDialog(String email) {
                         const SizedBox(height: 12),
 
                         // Login Button with Animation
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFF6366F1),
-                                Color(0xFF8B5CF6),
+                        Focus(
+                          focusNode: _loginButtonFocus,
+                          onKey: (node, event) {
+                            if (event.isKeyPressed(LogicalKeyboardKey.enter) && !_isLoading) {
+                              _login();
+                              return KeyEventResult.handled;
+                            }
+                            return KeyEventResult.ignored;
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF6366F1),
+                                  Color(0xFF8B5CF6),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF6366F1).withOpacity(0.4),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 5),
+                                ),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF6366F1).withOpacity(0.4),
-                                blurRadius: 15,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: _isLoading ? null : _login,
-                              borderRadius: BorderRadius.circular(12),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                child: _isLoading
-                                    ? const Center(
-                                        child: SizedBox(
-                                          height: 24,
-                                          width: 24,
-                                          child: CircularProgressIndicator(
-                                            valueColor: AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _isLoading ? null : _login,
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  child: _isLoading
+                                      ? const Center(
+                                          child: SizedBox(
+                                            height: 24,
+                                            width: 24,
+                                            child: CircularProgressIndicator(
+                                              valueColor: AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
+                                              strokeWidth: 2.5,
                                             ),
-                                            strokeWidth: 2.5,
                                           ),
+                                        )
+                                      : const Text(
+                                          'Sign In',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                            letterSpacing: 0.5,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
-                                      )
-                                    : const Text(
-                                        'Sign In',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                          letterSpacing: 0.5,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
+                                ),
                               ),
                             ),
                           ),
@@ -504,12 +546,5 @@ void _showVerificationDialog(String email) {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 }

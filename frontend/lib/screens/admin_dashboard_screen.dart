@@ -29,7 +29,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
     'Patients',
     'Doctors',
     'Pharmacies',
+    'Prescriptions',
     'Orders',
+    'Analytics',
+    'Disputes',
   ];
 
   @override
@@ -362,7 +365,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
       case 2: return Icons.local_hospital;
       case 3: return Icons.medical_services;
       case 4: return Icons.store;
-      case 5: return Icons.shopping_cart;
+      case 5: return Icons.receipt;
+      case 6: return Icons.shopping_cart;
+      case 7: return Icons.analytics;
+      case 8: return Icons.gavel;
       default: return Icons.dashboard;
     }
   }
@@ -388,7 +394,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
       case 4:
         return const PharmaciesManagementView();
       case 5:
+        return const PrescriptionsManagementView();
+      case 6:
         return const OrdersManagementView();
+      case 7:
+        return const AnalyticsView();
+      case 8:
+        return const DisputesManagementView();
       default:
         return _buildDashboardView();
     }
@@ -1342,23 +1354,70 @@ class _DoctorsManagementViewState extends State<DoctorsManagementView> {
             separatorBuilder: (context, index) => const Divider(),
             itemBuilder: (context, index) {
               final doctor = _doctors[index];
+              final isVerified = doctor['is_verified'] ?? false;
               return ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.blue,
-                  child: Icon(Icons.medical_services, color: Colors.white),
+                leading: CircleAvatar(
+                  backgroundColor: isVerified ? Colors.green : Colors.orange,
+                  child: Icon(
+                    isVerified ? Icons.verified : Icons.pending,
+                    color: Colors.white,
+                  ),
                 ),
-                title: Text(
-                  'Dr. ${doctor['first_name'] ?? ''} ${doctor['last_name'] ?? ''}',
-                ),
-                subtitle: Text(doctor['specialization'] ?? 'General Practice'),
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                title: Row(
                   children: [
-                    Text(doctor['phone'] ?? ''),
-                    Text(
-                      doctor['email'] ?? '',
-                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                    Text('Dr. ${doctor['first_name'] ?? ''} ${doctor['last_name'] ?? ''}'),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isVerified ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        isVerified ? 'Verified' : 'Unverified',
+                        style: TextStyle(
+                          color: isVerified ? Colors.green : Colors.orange,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(doctor['specialization'] ?? 'General Practice'),
+                    if (doctor['verification_notes'] != null)
+                      Text(
+                        'Notes: ${doctor['verification_notes']}',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                  ],
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(doctor['phone'] ?? ''),
+                        Text(
+                          doctor['email'] ?? '',
+                          style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () => _showVerificationDialog(doctor['doctor_id'], !isVerified),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isVerified ? Colors.red : Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      child: Text(isVerified ? 'Unverify' : 'Verify'),
                     ),
                   ],
                 ),
@@ -1395,6 +1454,68 @@ class _DoctorsManagementViewState extends State<DoctorsManagementView> {
             ),
           ),
       ],
+    );
+  }
+
+  void _showVerificationDialog(int doctorId, bool isVerified) {
+    final TextEditingController notesController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${isVerified ? 'Verify' : 'Unverify'} Doctor'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Are you sure you want to ${isVerified ? 'verify' : 'unverify'} this doctor?'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: notesController,
+              decoration: InputDecoration(
+                labelText: 'Verification Notes (Optional)',
+                hintText: 'Enter any notes about this verification...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              try {
+                await _adminService.verifyDoctor(
+                  doctorId,
+                  isVerified,
+                  notes: notesController.text.isEmpty ? null : notesController.text,
+                );
+                _loadDoctors();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Doctor ${isVerified ? 'verified' : 'unverified'} successfully'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+            child: Text(isVerified ? 'Verify' : 'Unverify'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1478,16 +1599,65 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
             separatorBuilder: (context, index) => const Divider(),
             itemBuilder: (context, index) {
               final pharmacy = _pharmacies[index];
+              final isVerified = pharmacy['is_verified'] ?? false;
               return ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.orange,
-                  child: Icon(Icons.store, color: Colors.white),
+                leading: CircleAvatar(
+                  backgroundColor: isVerified ? Colors.green : Colors.orange,
+                  child: Icon(
+                    isVerified ? Icons.verified : Icons.pending,
+                    color: Colors.white,
+                  ),
                 ),
-                title: Text(pharmacy['name'] ?? 'Unknown'),
-                subtitle: Text(pharmacy['location'] ?? ''),
-                trailing: Text(
-                  pharmacy['phone'] ?? '',
-                  style: const TextStyle(color: Color(0xFF64748B)),
+                title: Row(
+                  children: [
+                    Text(pharmacy['name'] ?? 'Unknown'),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isVerified ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        isVerified ? 'Verified' : 'Unverified',
+                        style: TextStyle(
+                          color: isVerified ? Colors.green : Colors.orange,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(pharmacy['location'] ?? ''),
+                    if (pharmacy['verification_notes'] != null)
+                      Text(
+                        'Notes: ${pharmacy['verification_notes']}',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                  ],
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      pharmacy['phone'] ?? '',
+                      style: const TextStyle(color: Color(0xFF64748B)),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () => _showVerificationDialog(pharmacy['pharmacy_id'], !isVerified),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isVerified ? Colors.red : Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      child: Text(isVerified ? 'Unverify' : 'Verify'),
+                    ),
+                  ],
                 ),
               );
             },
@@ -1522,6 +1692,68 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
             ),
           ),
       ],
+    );
+  }
+
+  void _showVerificationDialog(int pharmacyId, bool isVerified) {
+    final TextEditingController notesController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${isVerified ? 'Verify' : 'Unverify'} Pharmacy'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Are you sure you want to ${isVerified ? 'verify' : 'unverify'} this pharmacy?'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: notesController,
+              decoration: InputDecoration(
+                labelText: 'Verification Notes (Optional)',
+                hintText: 'Enter any notes about this verification...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              try {
+                await _adminService.verifyPharmacy(
+                  pharmacyId,
+                  isVerified,
+                  notes: notesController.text.isEmpty ? null : notesController.text,
+                );
+                _loadPharmacies();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Pharmacy ${isVerified ? 'verified' : 'unverified'} successfully'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+            child: Text(isVerified ? 'Verify' : 'Unverify'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1655,6 +1887,727 @@ class _OrdersManagementViewState extends State<OrdersManagementView> {
       default:
         return Colors.grey;
     }
+  }
+}
+
+// ==================== PRESCRIPTIONS MANAGEMENT VIEW ====================
+class PrescriptionsManagementView extends StatefulWidget {
+  const PrescriptionsManagementView({super.key});
+
+  @override
+  State<PrescriptionsManagementView> createState() => _PrescriptionsManagementViewState();
+}
+
+class _PrescriptionsManagementViewState extends State<PrescriptionsManagementView> {
+  final AdminService _adminService = AdminService();
+  List<dynamic> _prescriptions = [];
+  bool _isLoading = true;
+  int _currentPage = 1;
+  int _totalPages = 1;
+  String? _selectedStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrescriptions();
+  }
+
+  Future<void> _loadPrescriptions() async {
+    try {
+      final result = await _adminService.getAllPrescriptions(
+        page: _currentPage,
+        limit: 20,
+        status: _selectedStatus,
+      );
+      setState(() {
+        _prescriptions = result['prescriptions'] ?? [];
+        _totalPages = result['pagination']['totalPages'] ?? 1;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading prescriptions: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _updatePrescriptionStatus(int prescriptionId, String status) async {
+    try {
+      await _adminService.updatePrescriptionStatus(prescriptionId, status);
+      _loadPrescriptions();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Prescription status updated successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating status: $e')),
+        );
+      }
+    }
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status) {
+      case 'completed':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'processing':
+        return Colors.blue;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Prescription Management',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              Row(
+                children: [
+                  DropdownButton<String?>(
+                    value: _selectedStatus,
+                    hint: const Text('Filter by Status'),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('All Statuses')),
+                      DropdownMenuItem(value: 'active', child: Text('Active')),
+                      DropdownMenuItem(value: 'filled', child: Text('Filled')),
+                      DropdownMenuItem(value: 'expired', child: Text('Expired')),
+                      DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedStatus = value;
+                        _currentPage = 1;
+                      });
+                      _loadPrescriptions();
+                    },
+                  ),
+                  const SizedBox(width: 16),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _loadPrescriptions,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _prescriptions.isEmpty
+                    ? const Center(child: Text('No prescriptions found'))
+                    : ListView.builder(
+                        itemCount: _prescriptions.length,
+                        itemBuilder: (context, index) {
+                          final prescription = _prescriptions[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Prescription #${prescription['prescription_id']}',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: _getStatusColor(prescription['status']).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          prescription['status']?.toUpperCase() ?? 'UNKNOWN',
+                                          style: TextStyle(
+                                            color: _getStatusColor(prescription['status']),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('Patient: ${prescription['patient_first_name']} ${prescription['patient_last_name']}'),
+                                  Text('Doctor: ${prescription['doctor_first_name']} ${prescription['doctor_last_name']}'),
+                                  Text('Medicine: ${prescription['medicine_name']}'),
+                                  Text('Date: ${prescription['prescription_date']}'),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      const Text('Status: '),
+                                      DropdownButton<String>(
+                                        value: prescription['status'],
+                                        items: ['active', 'filled', 'expired', 'cancelled']
+                                            .map((status) => DropdownMenuItem(
+                                                  value: status,
+                                                  child: Text(status.toUpperCase()),
+                                                ))
+                                            .toList(),
+                                        onChanged: (value) {
+                                          if (value != null) {
+                                            _updatePrescriptionStatus(prescription['prescription_id'], value);
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+          if (_totalPages > 1)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: _currentPage > 1
+                      ? () {
+                          setState(() {
+                            _currentPage--;
+                          });
+                          _loadPrescriptions();
+                        }
+                      : null,
+                ),
+                Text('Page $_currentPage of $_totalPages'),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: _currentPage < _totalPages
+                      ? () {
+                          setState(() {
+                            _currentPage++;
+                          });
+                          _loadPrescriptions();
+                        }
+                      : null,
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==================== ANALYTICS VIEW ====================
+class AnalyticsView extends StatefulWidget {
+  const AnalyticsView({super.key});
+
+  @override
+  State<AnalyticsView> createState() => _AnalyticsViewState();
+}
+
+class _AnalyticsViewState extends State<AnalyticsView> {
+  final AdminService _adminService = AdminService();
+  Map<String, dynamic>? _analytics;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAnalytics();
+  }
+
+  Future<void> _loadAnalytics() async {
+    try {
+      final result = await _adminService.getAnalytics();
+      setState(() {
+        _analytics = result['analytics'];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading analytics: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'System Analytics',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _loadAnalytics,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _analytics == null
+                    ? const Center(child: Text('No analytics data available'))
+                    : SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            // Most Used Medicines
+                            _buildAnalyticsCard(
+                              'Most Used Medicines',
+                              Icons.medication,
+                              _analytics!['mostUsedMedicines'] ?? [],
+                              (medicine) => '${medicine['medicine_name']} - ${medicine['prescription_count']} prescriptions',
+                            ),
+                            const SizedBox(height: 20),
+                            // Pharmacy Activity
+                            _buildAnalyticsCard(
+                              'Pharmacy Activity',
+                              Icons.store,
+                              _analytics!['pharmacyActivity'] ?? [],
+                              (pharmacy) => '${pharmacy['pharmacy_name']} - ${pharmacy['total_orders']} orders, \$${pharmacy['total_revenue']} revenue',
+                            ),
+                            const SizedBox(height: 20),
+                            // Monthly Trends
+                            _buildAnalyticsCard(
+                              'Monthly Trends',
+                              Icons.trending_up,
+                              _analytics!['monthlyTrends'] ?? [],
+                              (trend) => '${trend['month']} - ${trend['completed_orders']} orders, ${trend['filled_prescriptions']} prescriptions',
+                            ),
+                          ],
+                        ),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsCard(String title, IconData icon, List<dynamic> data, String Function(dynamic) formatItem) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: const Color(0xFF1E40AF)),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            data.isEmpty
+                ? const Text('No data available')
+                : Column(
+                    children: data.map((item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(formatItem(item)),
+                    )).toList(),
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==================== DISPUTES MANAGEMENT VIEW ====================
+class DisputesManagementView extends StatefulWidget {
+  const DisputesManagementView({super.key});
+
+  @override
+  State<DisputesManagementView> createState() => _DisputesManagementViewState();
+}
+
+class _DisputesManagementViewState extends State<DisputesManagementView> {
+  final AdminService _adminService = AdminService();
+  List<dynamic> _disputes = [];
+  bool _isLoading = true;
+  int _currentPage = 1;
+  int _totalPages = 1;
+  String? _selectedStatus;
+  String? _selectedType;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDisputes();
+  }
+
+  Future<void> _loadDisputes() async {
+    try {
+      final result = await _adminService.getAllDisputes(
+        page: _currentPage,
+        limit: 20,
+        status: _selectedStatus,
+        type: _selectedType,
+      );
+      setState(() {
+        _disputes = result['disputes'] ?? [];
+        _totalPages = result['pagination']['totalPages'] ?? 1;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading disputes: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _updateDisputeStatus(int disputeId, String status, {String? resolutionNotes}) async {
+    try {
+      await _adminService.updateDisputeStatus(disputeId, status, resolutionNotes: resolutionNotes);
+      _loadDisputes();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Dispute status updated successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating dispute status: $e')),
+        );
+      }
+    }
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status) {
+      case 'completed':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'processing':
+        return Colors.blue;
+      case 'cancelled':
+        return Colors.red;
+      case 'resolved':
+        return Colors.green;
+      case 'investigating':
+        return Colors.blue;
+      case 'dismissed':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getPriorityColor(String? priority) {
+    switch (priority) {
+      case 'urgent':
+        return Colors.red;
+      case 'high':
+        return Colors.orange;
+      case 'medium':
+        return Colors.yellow;
+      case 'low':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Dispute Management',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              Row(
+                children: [
+                  DropdownButton<String?>(
+                    value: _selectedStatus,
+                    hint: const Text('Filter by Status'),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('All Statuses')),
+                      DropdownMenuItem(value: 'pending', child: Text('Pending')),
+                      DropdownMenuItem(value: 'investigating', child: Text('Investigating')),
+                      DropdownMenuItem(value: 'resolved', child: Text('Resolved')),
+                      DropdownMenuItem(value: 'dismissed', child: Text('Dismissed')),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedStatus = value;
+                        _currentPage = 1;
+                      });
+                      _loadDisputes();
+                    },
+                  ),
+                  const SizedBox(width: 16),
+                  DropdownButton<String?>(
+                    value: _selectedType,
+                    hint: const Text('Filter by Type'),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('All Types')),
+                      DropdownMenuItem(value: 'prescription', child: Text('Prescription')),
+                      DropdownMenuItem(value: 'appointment', child: Text('Appointment')),
+                      DropdownMenuItem(value: 'pharmacy', child: Text('Pharmacy')),
+                      DropdownMenuItem(value: 'doctor', child: Text('Doctor')),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedType = value;
+                        _currentPage = 1;
+                      });
+                      _loadDisputes();
+                    },
+                  ),
+                  const SizedBox(width: 16),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _loadDisputes,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _disputes.isEmpty
+                    ? const Center(child: Text('No disputes found'))
+                    : ListView.builder(
+                        itemCount: _disputes.length,
+                        itemBuilder: (context, index) {
+                          final dispute = _disputes[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Dispute #${dispute['dispute_id']} - ${dispute['dispute_type']}',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: _getStatusColor(dispute['status']).withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              dispute['status']?.toUpperCase() ?? 'UNKNOWN',
+                                              style: TextStyle(
+                                                color: _getStatusColor(dispute['status']),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: _getPriorityColor(dispute['priority']).withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              dispute['priority']?.toUpperCase() ?? 'MEDIUM',
+                                              style: TextStyle(
+                                                color: _getPriorityColor(dispute['priority']),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('User: ${dispute['username']} (${dispute['email']})'),
+                                  Text('Related ID: ${dispute['related_id']}'),
+                                  Text('Created: ${dispute['created_at']}'),
+                                  if (dispute['resolved_by_username'] != null)
+                                    Text('Resolved by: ${dispute['resolved_by_username']}'),
+                                  const SizedBox(height: 8),
+                                  const Text('Description:', style: TextStyle(fontWeight: FontWeight.w600)),
+                                  Text(dispute['description']),
+                                  if (dispute['resolution_notes'] != null) ...[
+                                    const SizedBox(height: 8),
+                                    const Text('Resolution:', style: TextStyle(fontWeight: FontWeight.w600)),
+                                    Text(dispute['resolution_notes']),
+                                  ],
+                                  const SizedBox(height: 12),
+                                  if (dispute['status'] != 'resolved' && dispute['status'] != 'dismissed')
+                                    Row(
+                                      children: [
+                                        const Text('Update Status: '),
+                                        DropdownButton<String>(
+                                          value: dispute['status'],
+                                          items: ['pending', 'investigating', 'resolved', 'dismissed']
+                                              .map((status) => DropdownMenuItem(
+                                                    value: status,
+                                                    child: Text(status.toUpperCase()),
+                                                  ))
+                                              .toList(),
+                                          onChanged: (value) {
+                                            if (value != null) {
+                                              if (value == 'resolved' || value == 'dismissed') {
+                                                _showResolutionDialog(dispute['dispute_id'], value);
+                                              } else {
+                                                _updateDisputeStatus(dispute['dispute_id'], value);
+                                              }
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+          if (_totalPages > 1)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: _currentPage > 1
+                      ? () {
+                          setState(() {
+                            _currentPage--;
+                          });
+                          _loadDisputes();
+                        }
+                      : null,
+                ),
+                Text('Page $_currentPage of $_totalPages'),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: _currentPage < _totalPages
+                      ? () {
+                          setState(() {
+                            _currentPage++;
+                          });
+                          _loadDisputes();
+                        }
+                      : null,
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showResolutionDialog(int disputeId, String status) {
+    final TextEditingController notesController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Resolve Dispute as ${status.toUpperCase()}'),
+        content: TextField(
+          controller: notesController,
+          decoration: const InputDecoration(
+            labelText: 'Resolution Notes',
+            hintText: 'Enter resolution notes...',
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _updateDisputeStatus(disputeId, status, resolutionNotes: notesController.text);
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
