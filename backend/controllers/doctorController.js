@@ -85,6 +85,31 @@ exports.registerDoctor = async (req, res) => {
   }
 
   const isExistingUser = Boolean(user_id);
+  
+  // ================ VERIFY DOCTOR ROLE ================
+  if (isExistingUser) {
+    // If registering with existing user, verify the user has doctor role
+    const pool = require("../config/db");
+    const userResult = await pool.query(
+      "SELECT role FROM users WHERE user_id = $1",
+      [user_id]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+    
+    if (userResult.rows[0].role !== 'doctor') {
+      return res.status(403).json({
+        success: false,
+        message: "User must have doctor role to register as doctor"
+      });
+    }
+  }
+  
   if (!isExistingUser && (!email || !password || !username)) {
     console.log("❌ Missing authentication fields for new user creation");
     return res.status(400).json({

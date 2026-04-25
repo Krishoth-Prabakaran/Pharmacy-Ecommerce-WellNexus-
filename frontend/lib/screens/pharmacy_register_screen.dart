@@ -24,18 +24,32 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
   final _pharmacyNameController = TextEditingController();
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _latitudeController = TextEditingController();
-  final _longitudeController = TextEditingController();
 
   TimeOfDay? _openTime;
   TimeOfDay? _closeTime;
-
   bool _isLoading = false;
+
+  // Branches management
+  late List<Map<String, dynamic>> _branches;
+  final LatLng _defaultLocation = const LatLng(6.9271, 80.7789); // Sri Lanka center
+  LatLng? _selectedLocation;
 
   @override
   void initState() {
     super.initState();
-    print('📱 PharmacyRegisterScreen received: ');
+    _branches = [
+      {
+        'branch_name': 'Main Branch',
+        'address': '',
+        'phone': '',
+        'latitude': null,
+        'longitude': null,
+        'open_time': null,
+        'close_time': null,
+        'is_main_branch': true,
+      }
+    ];
+    print('📱 PharmacyRegisterScreen received: ${widget.userData['username']}');
   }
 
   Future<void> _selectTimeForBranch(BuildContext context, int branchIndex, bool isOpenTime) async {
@@ -82,20 +96,46 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
 
   Future<void> _registerPharmacy() async {
     if (_formKey.currentState!.validate()) {
+      // Validate branches
+      if (_branches.isEmpty) {
+        _showSnackBar('Please add at least one branch', Colors.red);
+        return;
+      }
+
+      // Validate all branches have required fields
+      for (int i = 0; i < _branches.length; i++) {
+        final branch = _branches[i];
+        if (branch['branch_name'].toString().trim().isEmpty ||
+            branch['address'].toString().trim().isEmpty ||
+            branch['phone'].toString().trim().isEmpty) {
+          _showSnackBar('All branch fields are required', Colors.red);
+          return;
+        }
+      }
+
       setState(() => _isLoading = true);
+
+      // Prepare branches array for backend
+      final branches = _branches.map((branch) {
+        return {
+          'branch_name': branch['branch_name'],
+          'address': branch['address'],
+          'phone': branch['phone'],
+          'latitude': branch['latitude'],
+          'longitude': branch['longitude'],
+          'open_time': branch['open_time'] != null
+              ? _formatTimeOfDay(branch['open_time'])
+              : null,
+          'close_time': branch['close_time'] != null
+              ? _formatTimeOfDay(branch['close_time'])
+              : null,
+          'is_main_branch': branch['is_main_branch'] == true,
+        };
+      }).toList();
 
       final pharmacyData = {
         'pharmacy_name': _pharmacyNameController.text.trim(),
-        'address': _addressController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'latitude': _latitudeController.text.isNotEmpty
-            ? double.tryParse(_latitudeController.text.trim())
-            : null,
-        'longitude': _longitudeController.text.isNotEmpty
-            ? double.tryParse(_longitudeController.text.trim())
-            : null,
-        'open_time': _formatTimeOfDay(_openTime),
-        'close_time': _formatTimeOfDay(_closeTime),
+        'branches': branches,
         'username': widget.userData['username'],
         'email': widget.userData['email'],
         'user_id': widget.userData['user_id'],
@@ -118,6 +158,76 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
       } else {
         _showSnackBar(result['message'], Colors.red);
       }
+    }
+  }
+
+  void _addBranch() {
+    setState(() {
+      _branches.add({
+        'branch_name': 'Branch ${_branches.length}',
+        'address': '',
+        'phone': '',
+        'latitude': null,
+        'longitude': null,
+        'open_time': null,
+        'close_time': null,
+        'is_main_branch': false,
+      });
+    });
+  }
+
+  void _removeBranch(int index) {
+    if (_branches.length <= 1) {
+      _showSnackBar('At least one branch is required', Colors.orange);
+      return;
+    }
+    setState(() => _branches.removeAt(index));
+  }
+
+  void _setMainBranch(int index) {
+    setState(() {
+      for (int i = 0; i < _branches.length; i++) {
+        _branches[i]['is_main_branch'] = i == index;
+      }
+    });
+  }
+
+  Future<void> _useCurrentLocation(int branchIndex) async {
+    try {
+      final position = await LocationService.getCurrentLocation();
+      setState(() {
+        _branches[branchIndex]['latitude'] = position.latitude;
+        _branches[branchIndex]['longitude'] = position.longitude;
+        _selectedLocation = LatLng(position.latitude, position.longitude);
+      });
+      _showSnackBar('Location updated', Colors.green);
+    } catch (e) {
+      _showSnackBar('Location error: $e', Colors.red);
+    }
+  }
+
+  void _updateSelectedLocation(LatLng location, int branchIndex) {
+    setState(() {
+      _selectedLocation = location;
+      _branches[branchIndex]['latitude'] = location.latitude;
+      _branches[branchIndex]['longitude'] = location.longitude;
+    });
+  }
+
+  Future<void> _selectTime(BuildContext context, bool isOpenTime) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: isOpenTime ? (_openTime ?? TimeOfDay.now()) : (_closeTime ?? TimeOfDay.now()),
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (isOpenTime) {
+          _openTime = picked;
+        } else {
+          _closeTime = picked;
+        }
+      });
     }
   }
 
