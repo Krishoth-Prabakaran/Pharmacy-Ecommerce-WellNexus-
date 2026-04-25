@@ -372,3 +372,142 @@ exports.updatePrescriptionStatus = async (req, res) => {
     });
   }
 };
+
+// ==================== VERIFY DOCTOR ====================
+exports.verifyDoctor = async (req, res) => {
+  const { doctorId } = req.params;
+  const { isVerified, notes } = req.body;
+  const adminId = req.user.user_id;
+
+  console.log(`✅ Verifying doctor ${doctorId}: ${isVerified ? 'verified' : 'unverified'}`);
+
+  try {
+    const result = await AdminModel.verifyDoctor(doctorId, isVerified, adminId, notes);
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Error verifying doctor:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to verify doctor",
+      error: err.message,
+    });
+  }
+};
+
+// ==================== VERIFY PHARMACY ====================
+exports.verifyPharmacy = async (req, res) => {
+  const { pharmacyId } = req.params;
+  const { isVerified, notes } = req.body;
+  const adminId = req.user.user_id;
+
+  console.log(`🏪 Verifying pharmacy ${pharmacyId}: ${isVerified ? 'verified' : 'unverified'}`);
+
+  try {
+    const result = await AdminModel.verifyPharmacy(pharmacyId, isVerified, adminId, notes);
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Error verifying pharmacy:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to verify pharmacy",
+      error: err.message,
+    });
+  }
+};
+
+// ==================== GET ANALYTICS ====================
+exports.getAnalytics = async (req, res) => {
+  console.log("📊 Fetching system analytics...");
+
+  try {
+    const result = await AdminModel.getAnalytics();
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Error fetching analytics:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch analytics",
+      error: err.message,
+    });
+  }
+};
+
+// ==================== GET DISPUTES ====================
+exports.getAllDisputes = async (req, res) => {
+  console.log("⚖️ Fetching all disputes...");
+
+  try {
+    const { page, limit, status, type } = req.query;
+    const options = {
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 20,
+      status: status || null,
+      type: type || null,
+    };
+
+    const result = await AdminModel.getAllDisputes(options);
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Error fetching disputes:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch disputes",
+      error: err.message,
+    });
+  }
+};
+
+// ==================== CREATE DISPUTE ====================
+exports.createDispute = async (req, res) => {
+  const { disputeType, relatedId, description, priority } = req.body;
+  const userId = req.user.user_id;
+
+  console.log(`⚖️ Creating dispute for user ${userId}: ${disputeType}`);
+
+  try {
+    const result = await AdminModel.createDispute({
+      userId,
+      disputeType,
+      relatedId,
+      description,
+      priority: priority || 'medium',
+    });
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Error creating dispute:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create dispute",
+      error: err.message,
+    });
+  }
+};
+
+// ==================== UPDATE DISPUTE STATUS ====================
+exports.updateDisputeStatus = async (req, res) => {
+  const { disputeId } = req.params;
+  const { status, resolutionNotes } = req.body;
+  const adminId = req.user.user_id;
+
+  console.log(`🔄 Updating dispute ${disputeId} status to: ${status}`);
+
+  try {
+    const validStatuses = ['pending', 'investigating', 'resolved', 'dismissed'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+      });
+    }
+
+    const result = await AdminModel.updateDisputeStatus(disputeId, status, adminId, resolutionNotes);
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Error updating dispute status:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update dispute status",
+      error: err.message,
+    });
+  }
+};

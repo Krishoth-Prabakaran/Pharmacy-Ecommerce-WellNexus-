@@ -520,7 +520,7 @@ class AuthService {
           'email': email.toLowerCase(),
           'otp': otp,
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
 
       print('📥 Verify password reset OTP response status: ${response.statusCode}');
       print('📥 Verify password reset OTP response body: ${response.body}');

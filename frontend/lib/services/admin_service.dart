@@ -338,4 +338,163 @@ class AdminService {
       throw Exception('Error updating prescription status: $e');
     }
   }
+
+  // Verify doctor
+  Future<Map<String, dynamic>> verifyDoctor(
+    int doctorId,
+    bool isVerified, {
+    String? notes,
+  }) async {
+    try {
+      final Map<String, dynamic> body = {'isVerified': isVerified};
+      if (notes != null) body['notes'] = notes;
+
+      final response = await http.put(
+        Uri.parse('$_baseUrl/doctors/$doctorId/verify'),
+        headers: await _getHeaders(),
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to verify doctor: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error verifying doctor: $e');
+    }
+  }
+
+  // Verify pharmacy
+  Future<Map<String, dynamic>> verifyPharmacy(
+    int pharmacyId,
+    bool isVerified, {
+    String? notes,
+  }) async {
+    try {
+      final Map<String, dynamic> body = {'isVerified': isVerified};
+      if (notes != null) body['notes'] = notes;
+
+      final response = await http.put(
+        Uri.parse('$_baseUrl/pharmacies/$pharmacyId/verify'),
+        headers: await _getHeaders(),
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to verify pharmacy: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error verifying pharmacy: $e');
+    }
+  }
+
+  // Get analytics
+  Future<Map<String, dynamic>> getAnalytics() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/analytics'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load analytics: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching analytics: $e');
+    }
+  }
+
+  // Get all disputes
+  Future<Map<String, dynamic>> getAllDisputes({
+    int page = 1,
+    int limit = 20,
+    String? status,
+    String? type,
+  }) async {
+    try {
+      final params = {
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
+      if (status != null) params['status'] = status;
+      if (type != null) params['type'] = type;
+
+      final queryString = params.entries
+          .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+          .join('&');
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/disputes?$queryString'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load disputes: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching disputes: $e');
+    }
+  }
+
+  // Create dispute
+  Future<Map<String, dynamic>> createDispute({
+    required String disputeType,
+    required int relatedId,
+    required String description,
+    String priority = 'medium',
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/disputes'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'disputeType': disputeType,
+          'relatedId': relatedId,
+          'description': description,
+          'priority': priority,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to create dispute: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error creating dispute: $e');
+    }
+  }
+
+  // Update dispute status
+  Future<Map<String, dynamic>> updateDisputeStatus(
+    int disputeId,
+    String status, {
+    String? resolutionNotes,
+  }) async {
+    try {
+      final body = {'status': status};
+      if (resolutionNotes != null) body['resolutionNotes'] = resolutionNotes;
+
+      final response = await http.put(
+        Uri.parse('$_baseUrl/disputes/$disputeId/status'),
+        headers: await _getHeaders(),
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to update dispute status: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error updating dispute status: $e');
+    }
+  }
 }

@@ -69,7 +69,16 @@ router.put('/appointments/:appointmentId/status', adminAuth, adminController.upd
 router.get('/prescriptions', adminAuth, adminController.getAllPrescriptions);
 router.put('/prescriptions/:prescriptionId/status', adminAuth, adminController.updatePrescriptionStatus);
 
-// Order Management
-router.get('/orders', adminAuth, adminController.getAllOrders);
+// Professional Verification
+router.put('/doctors/:doctorId/verify', adminAuth, adminController.verifyDoctor);
+router.put('/pharmacies/:pharmacyId/verify', adminAuth, adminController.verifyPharmacy);
+
+// Analytics
+router.get('/analytics', adminAuth, adminController.getAnalytics);
+
+// Dispute Management
+router.get('/disputes', adminAuth, adminController.getAllDisputes);
+router.post('/disputes', adminAuth, adminController.createDispute);
+router.put('/disputes/:disputeId/status', adminAuth, adminController.updateDisputeStatus);
 
 module.exports = router;

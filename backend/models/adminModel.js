@@ -376,6 +376,249 @@ const AdminModel = {
       throw error;
     }
   },
+
+  /**
+   * Verify or unverify a doctor
+   * @param {number} doctorId - Doctor ID
+   * @param {boolean} isVerified - Verification status
+   * @param {number} adminId - Admin user ID performing the action
+   * @param {string} notes - Optional verification notes
+   */
+  async verifyDoctor(doctorId, isVerified, adminId, notes = null) {
+    try {
+      const result = await pool.query(
+        `UPDATE doctors
+         SET is_verified = $1,
+             verified_at = CASE WHEN $1 THEN NOW() ELSE NULL END,
+             verified_by = CASE WHEN $1 THEN $3 ELSE NULL END,
+             verification_notes = $4
+         WHERE doctor_id = $2
+         RETURNING *`,
+        [isVerified, doctorId, adminId, notes]
+      );
+
+      if (result.rows.length === 0) {
+        throw new Error('Doctor not found');
+      }
+
+      return { success: true, doctor: result.rows[0] };
+    } catch (error) {
+      console.error("Error verifying doctor:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Verify or unverify a pharmacy
+   * @param {number} pharmacyId - Pharmacy ID
+   * @param {boolean} isVerified - Verification status
+   * @param {number} adminId - Admin user ID performing the action
+   * @param {string} notes - Optional verification notes
+   */
+  async verifyPharmacy(pharmacyId, isVerified, adminId, notes = null) {
+    try {
+      const result = await pool.query(
+        `UPDATE pharmacies
+         SET is_verified = $1,
+             verified_at = CASE WHEN $1 THEN NOW() ELSE NULL END,
+             verified_by = CASE WHEN $1 THEN $3 ELSE NULL END,
+             verification_notes = $4
+         WHERE pharmacy_id = $2
+         RETURNING *`,
+        [isVerified, pharmacyId, adminId, notes]
+      );
+
+      if (result.rows.length === 0) {
+        throw new Error('Pharmacy not found');
+      }
+
+      return { success: true, pharmacy: result.rows[0] };
+    } catch (error) {
+      console.error("Error verifying pharmacy:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get analytics data for most used medicines and pharmacy activity
+   * @returns {Object} Analytics data
+   */
+  async getAnalytics() {
+    try {
+      // Most used medicines (from prescriptions)
+      const mostUsedMedicines = await pool.query(`
+        SELECT
+          pi.medicine_name,
+          COUNT(*) as prescription_count,
+          COUNT(DISTINCT p.patient_id) as unique_patients
+        FROM prescription_items pi
+        JOIN prescriptions p ON pi.prescription_id = p.prescription_id
+        WHERE p.status = 'filled' OR p.status = 'active'
+        GROUP BY pi.medicine_name
+        ORDER BY prescription_count DESC
+        LIMIT 10
+      `);
+
+      // Pharmacy activity (orders and prescriptions filled)
+      const pharmacyActivity = await pool.query(`
+        SELECT
+          ph.pharmacy_name,
+          ph.pharmacy_id,
+          COUNT(DISTINCT o.order_id) as total_orders,
+          COUNT(DISTINCT p.prescription_id) as prescriptions_filled,
+          COALESCE(SUM(o.total_amount), 0) as total_revenue,
+          AVG(o.total_amount) as avg_order_value
+        FROM pharmacies ph
+        LEFT JOIN orders o ON ph.pharmacy_id = o.pharmacy_id AND o.status = 'completed'
+        LEFT JOIN prescriptions p ON ph.pharmacy_id = p.pharmacy_id AND p.status = 'filled'
+        GROUP BY ph.pharmacy_id, ph.pharmacy_name
+        ORDER BY total_orders DESC
+        LIMIT 10
+      `);
+
+      // Monthly trends for prescriptions and orders
+      const monthlyTrends = await pool.query(`
+        SELECT
+          DATE_TRUNC('month', created_at) as month,
+          COUNT(*) FILTER (WHERE status = 'completed') as completed_orders,
+          COUNT(*) FILTER (WHERE status = 'filled') as filled_prescriptions
+        FROM (
+          SELECT created_at, 'order' as type, status FROM orders
+          UNION ALL
+          SELECT prescription_date as created_at, 'prescription' as type, status FROM prescriptions
+        ) combined
+        WHERE created_at >= DATE_TRUNC('month', NOW() - INTERVAL '12 months')
+        GROUP BY DATE_TRUNC('month', created_at)
+        ORDER BY month DESC
+      `);
+
+      return {
+        success: true,
+        analytics: {
+          mostUsedMedicines: mostUsedMedicines.rows,
+          pharmacyActivity: pharmacyActivity.rows,
+          monthlyTrends: monthlyTrends.rows,
+        },
+      };
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get all disputes with pagination
+   * @param {Object} options - Query options
+   * @returns {Object} Paginated disputes list
+   */
+  async getAllDisputes(options = {}) {
+    const { page = 1, limit = 20, status = null, type = null } = options;
+    const offset = (page - 1) * limit;
+    let whereConditions = [];
+    let params = [];
+    let paramCount = 1;
+
+    if (status) {
+      whereConditions.push(`status = $${paramCount}`);
+      params.push(status);
+      paramCount++;
+    }
+
+    if (type) {
+      whereConditions.push(`dispute_type = $${paramCount}`);
+      params.push(type);
+      paramCount++;
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    try {
+      const [disputesResult, countResult] = await Promise.all([
+        pool.query(
+          `SELECT d.*,
+                  u.username, u.email,
+                  r.username as resolved_by_username
+           FROM disputes d
+           JOIN users u ON d.user_id = u.user_id
+           LEFT JOIN users r ON d.resolved_by = r.user_id
+           ${whereClause}
+           ORDER BY d.created_at DESC
+           LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
+          [...params, limit, offset]
+        ),
+        pool.query(`SELECT COUNT(*) as total FROM disputes d ${whereClause}`, params),
+      ]);
+
+      return {
+        success: true,
+        disputes: disputesResult.rows,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(countResult.rows[0].total / limit),
+          totalDisputes: countResult.rows[0].total,
+          hasNext: page * limit < countResult.rows[0].total,
+          hasPrev: page > 1,
+        },
+      };
+    } catch (error) {
+      console.error("Error fetching disputes:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Create a new dispute
+   * @param {Object} disputeData - Dispute information
+   * @returns {Object} Created dispute
+   */
+  async createDispute(disputeData) {
+    const { userId, disputeType, relatedId, description, priority = 'medium' } = disputeData;
+
+    try {
+      const result = await pool.query(
+        `INSERT INTO disputes (user_id, dispute_type, related_id, description, priority)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+        [userId, disputeType, relatedId, description, priority]
+      );
+
+      return { success: true, dispute: result.rows[0] };
+    } catch (error) {
+      console.error("Error creating dispute:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update dispute status
+   * @param {number} disputeId - Dispute ID
+   * @param {string} status - New status
+   * @param {number} adminId - Admin resolving the dispute
+   * @param {string} resolutionNotes - Resolution notes
+   */
+  async updateDisputeStatus(disputeId, status, adminId, resolutionNotes = null) {
+    try {
+      const result = await pool.query(
+        `UPDATE disputes
+         SET status = $1,
+             resolved_by = $2,
+             resolution_notes = $3,
+             updated_at = NOW()
+         WHERE dispute_id = $4
+         RETURNING *`,
+        [status, adminId, resolutionNotes, disputeId]
+      );
+
+      if (result.rows.length === 0) {
+        throw new Error('Dispute not found');
+      }
+
+      return { success: true, dispute: result.rows[0] };
+    } catch (error) {
+      console.error("Error updating dispute status:", error);
+      throw error;
+    }
+  },
 };
 
 module.exports = AdminModel;
