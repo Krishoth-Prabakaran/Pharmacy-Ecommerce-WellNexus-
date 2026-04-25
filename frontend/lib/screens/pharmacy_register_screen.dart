@@ -216,7 +216,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                   borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                 ),
                 filled: true,
-                fillColor: Color(0xFFF9FAFB),
+                fillColor: const Color(0xFFF9FAFB),
               ),
               onChanged: (value) {
                 _branches[index]['branch_name'] = value;
@@ -258,7 +258,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                   borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                 ),
                 filled: true,
-                fillColor: Color(0xFFF9FAFB),
+                fillColor: const Color(0xFFF9FAFB),
               ),
               onChanged: (value) {
                 _branches[index]['address'] = value;
@@ -299,7 +299,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                   borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                 ),
                 filled: true,
-                fillColor: Color(0xFFF9FAFB),
+                fillColor: const Color(0xFFF9FAFB),
               ),
               onChanged: (value) {
                 _branches[index]['phone'] = value;
@@ -358,7 +358,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade300, width: 1.5),
                         borderRadius: BorderRadius.circular(12),
-                        color: Color(0xFFF9FAFB),
+                        color: const Color(0xFFF9FAFB),
                       ),
                       child: Row(
                         children: [
@@ -389,7 +389,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade300, width: 1.5),
                         borderRadius: BorderRadius.circular(12),
-                        color: Color(0xFFF9FAFB),
+                        color: const Color(0xFFF9FAFB),
                       ),
                       child: Row(
                         children: [
@@ -805,9 +805,9 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Text(
+                      const Text(
                         'Welcome, !',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF1F2937),
@@ -907,7 +907,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validateTextField(value, fieldName: 'Address', minLength: 5, maxLength: 255);
@@ -945,7 +945,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                               borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF9FAFB),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           validator: (value) {
                             return Validators.validatePhoneNumber(value);
@@ -990,7 +990,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                                   decoration: BoxDecoration(
                                     border: Border.all(color: Colors.grey[3]!, width: 1.5),
                                     borderRadius: BorderRadius.circular(12),
-                                    color: Color(0xFFF9FAFB),
+                                    color: const Color(0xFFF9FAFB),
                                   ),
                                   child: Row(
                                     children: [
@@ -1021,7 +1021,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                                   decoration: BoxDecoration(
                                     border: Border.all(color: Colors.grey[3]!, width: 1.5),
                                     borderRadius: BorderRadius.circular(12),
-                                    color: Color(0xFFF9FAFB),
+                                    color: const Color(0xFFF9FAFB),
                                   ),
                                   child: Row(
                                     children: [
