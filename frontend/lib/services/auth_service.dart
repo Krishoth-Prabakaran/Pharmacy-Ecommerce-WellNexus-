@@ -1,9 +1,11 @@
 // frontend/lib/services/auth_service.dart
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
+  static const String _tag = 'AuthService';
   // ==================== CONFIGURATION ====================
   /// Base URL for authentication API
   /// 
@@ -22,8 +24,8 @@ class AuthService {
   // static const String baseUrl = 'http://192.168.1.100:5000/api/auth';
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      print('📡 Login attempt for email: $email');
-      print('🔗 URL: $baseUrl/login');
+      developer.log('📡 Login attempt for email: $email', name: _tag);
+      developer.log('🔗 URL: $baseUrl/login', name: _tag);
       
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
@@ -34,8 +36,8 @@ class AuthService {
         body: jsonEncode({'email': email, 'password': password}),
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Login response status: ${response.statusCode}');
-      print('📥 Login response body: ${response.body}');
+      developer.log('📥 Login response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Login response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
 
@@ -54,7 +56,7 @@ class AuthService {
         return {'success': false, 'message': data['message'] ?? 'Login failed'};
       }
     } catch (e) {
-      print('❌ Login error: $e');
+      developer.log('❌ Login error: $e', name: _tag);
       if (e.toString().contains('SocketException')) {
         return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
       }
@@ -69,8 +71,8 @@ class AuthService {
   Future<Map<String, dynamic>> register(
       String username, String email, String password, String role) async {
     try {
-      print('📡 Registration attempt for email: $email');
-      print('🔗 URL: $baseUrl/register');
+      developer.log('📡 Registration attempt for email: $email', name: _tag);
+      developer.log('🔗 URL: $baseUrl/register', name: _tag);
       
       final response = await http.post(
         Uri.parse('$baseUrl/register'),
@@ -86,8 +88,8 @@ class AuthService {
         }),
       ).timeout(const Duration(seconds: 20));
 
-      print('📥 Register response status: ${response.statusCode}');
-      print('📥 Register response body: ${response.body}');
+      developer.log('📥 Register response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Register response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
 
@@ -105,7 +107,7 @@ class AuthService {
         };
       }
     } catch (e) {
-      print('❌ Registration error: $e');
+      developer.log('❌ Registration error: $e', name: _tag);
       if (e.toString().contains('SocketException')) {
         return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
       }
@@ -116,8 +118,8 @@ class AuthService {
   // ==================== VERIFY OTP ====================
   Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
     try {
-      print('📡 Verifying OTP for: $email with code: $otp');
-      print('🔗 URL: $baseUrl/verify-email');
+      developer.log('📡 Verifying OTP for: $email with code: $otp', name: _tag);
+      developer.log('🔗 URL: $baseUrl/verify-email', name: _tag);
       
       final response = await http.post(
         Uri.parse('$baseUrl/verify-email'),
@@ -131,8 +133,8 @@ class AuthService {
         }),
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Verify OTP response status: ${response.statusCode}');
-      print('📥 Verify OTP response body: ${response.body}');
+      developer.log('📥 Verify OTP response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Verify OTP response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
 
@@ -150,7 +152,7 @@ class AuthService {
         };
       }
     } catch (e) {
-      print('❌ Verification error: $e');
+      developer.log('❌ Verification error: $e', name: _tag);
       if (e.toString().contains('SocketException')) {
         return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
       }
@@ -164,8 +166,8 @@ class AuthService {
   // ==================== RESEND OTP ====================
   Future<Map<String, dynamic>> resendVerificationEmail(String email) async {
     try {
-      print('📡 Resending verification email to: $email');
-      print('🔗 URL: $baseUrl/resend-verification');
+      developer.log('📡 Resending verification email to: $email', name: _tag);
+      developer.log('🔗 URL: $baseUrl/resend-verification', name: _tag);
       
       final response = await http.post(
         Uri.parse('$baseUrl/resend-verification'),
@@ -176,8 +178,8 @@ class AuthService {
         body: jsonEncode({'email': email.toLowerCase()}),
       ).timeout(const Duration(seconds: 10));
       
-      print('📥 Resend response status: ${response.statusCode}');
-      print('📥 Resend response body: ${response.body}');
+      developer.log('📥 Resend response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Resend response body: ${response.body}', name: _tag);
       
       final Map<String, dynamic> data = jsonDecode(response.body);
       return {
@@ -186,7 +188,7 @@ class AuthService {
         'email_preview': data['email_preview']
       };
     } catch (e) {
-      print('❌ Resend error: $e');
+      developer.log('❌ Resend error: $e', name: _tag);
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -199,12 +201,12 @@ class AuthService {
     final userData = data['user'] ?? data;
     final token = data['token'] ?? '';
     
-    print('💾 Storing user data:');
-    print('   Token: [REDACTED for security]');
-    print('   User ID: ${userData['user_id']}');
-    print('   Username: ${userData['username']}');
-    print('   Email: ${userData['email']}');
-    print('   Role: ${userData['role']}');
+    developer.log('📋 Storing user data:', name: _tag);
+    developer.log('   Token: [REDACTED for security]', name: _tag);
+    developer.log('   User ID: ${userData['user_id']}', name: _tag);
+    developer.log('   Username: ${userData['username']}', name: _tag);
+    developer.log('   Email: ${userData['email']}', name: _tag);
+    developer.log('   Role: ${userData['role']}', name: _tag);
     
     await prefs.setString('token', token);
     await prefs.setString('role', userData['role'] ?? '');
@@ -246,8 +248,8 @@ class AuthService {
   // ==================== CREATE PATIENT ====================
   static Future<Map<String, dynamic>> createPatient(Map<String, dynamic> patientData) async {
     try {
-      print('📡 Creating patient: ${patientData['first_name']} ${patientData['last_name']}');
-      print('🔗 URL: http://localhost:5000/api/patients');
+      developer.log('📡 Creating patient: ${patientData['first_name']} ${patientData['last_name']}', name: _tag);
+      developer.log('🔗 URL: http://localhost:5000/api/patients', name: _tag);
 
       final response = await http.post(
         Uri.parse('http://localhost:5000/api/patients'),
@@ -258,13 +260,13 @@ class AuthService {
         body: jsonEncode(patientData),
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Create patient response status: ${response.statusCode}');
-      print('📥 Create patient response body: ${response.body}');
+      developer.log('📥 Create patient response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Create patient response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
       return data;
     } catch (e) {
-      print('❌ Create patient error: $e');
+      developer.log('❌ Create patient error: $e', name: _tag);
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -272,8 +274,8 @@ class AuthService {
   // ==================== CREATE PRESCRIPTION ====================
   static Future<Map<String, dynamic>> createPrescription(Map<String, dynamic> prescriptionData) async {
     try {
-      print('📡 Creating prescription for patient: ${prescriptionData['patient_id']}');
-      print('🔗 URL: http://localhost:5000/api/prescriptions');
+      developer.log('📡 Creating prescription for patient: ${prescriptionData['patient_id']}', name: _tag);
+      developer.log('🔗 URL: http://localhost:5000/api/prescriptions', name: _tag);
 
       final response = await http.post(
         Uri.parse('http://localhost:5000/api/prescriptions'),
@@ -284,13 +286,13 @@ class AuthService {
         body: jsonEncode(prescriptionData),
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Create prescription response status: ${response.statusCode}');
-      print('📥 Create prescription response body: ${response.body}');
+      developer.log('📥 Create prescription response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Create prescription response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
       return data;
     } catch (e) {
-      print('❌ Create prescription error: $e');
+      developer.log('❌ Create prescription error: $e', name: _tag);
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -305,8 +307,8 @@ class AuthService {
       //   return {'success': false, 'message': 'Not authenticated'};
       // }
 
-      print('📡 Creating appointment');
-      print('🔗 URL: http://localhost:5000/api/appointments');
+      developer.log('📡 Creating appointment', name: _tag);
+      developer.log('🔗 URL: http://localhost:5000/api/appointments', name: _tag);
 
       final response = await http.post(
         Uri.parse('http://localhost:5000/api/appointments'),
@@ -318,13 +320,13 @@ class AuthService {
         body: jsonEncode(appointmentData),
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Create appointment response status: ${response.statusCode}');
-      print('📥 Create appointment response body: ${response.body}');
+      developer.log('📥 Create appointment response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Create appointment response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
       return data;
     } catch (e) {
-      print('❌ Create appointment error: $e');
+      developer.log('❌ Create appointment error: $e', name: _tag);
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -346,8 +348,8 @@ class AuthService {
         url += '?${params.entries.map((e) => '${e.key}=${e.value}').join('&')}';
       }
 
-      print('📡 Getting appointments by doctor');
-      print('🔗 URL: $url');
+      developer.log('📡 Getting appointments by doctor', name: _tag);
+      developer.log('🔗 URL: $url', name: _tag);
 
       final response = await http.get(
         Uri.parse(url),
@@ -358,13 +360,13 @@ class AuthService {
         },
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Get appointments response status: ${response.statusCode}');
-      print('📥 Get appointments response body: ${response.body}');
+      developer.log('📥 Get appointments response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Get appointments response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
       return data;
     } catch (e) {
-      print('❌ Get appointments error: $e');
+      developer.log('❌ Get appointments error: $e', name: _tag);
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -380,8 +382,8 @@ class AuthService {
       final body = {'status': status};
       if (notes != null) body['notes'] = notes;
 
-      print('📡 Updating appointment $appointmentId status to $status');
-      print('🔗 URL: http://localhost:5000/api/appointments/$appointmentId/status');
+      developer.log('📡 Updating appointment $appointmentId status to $status', name: _tag);
+      developer.log('🔗 URL: http://localhost:5000/api/appointments/$appointmentId/status', name: _tag);
 
       final response = await http.put(
         Uri.parse('http://localhost:5000/api/appointments/$appointmentId/status'),
@@ -393,13 +395,13 @@ class AuthService {
         body: jsonEncode(body),
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Update appointment response status: ${response.statusCode}');
-      print('📥 Update appointment response body: ${response.body}');
+      developer.log('📥 Update appointment response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Update appointment response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
       return data;
     } catch (e) {
-      print('❌ Update appointment error: $e');
+      developer.log('❌ Update appointment error: $e', name: _tag);
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -419,8 +421,8 @@ class AuthService {
         url += '?search=${Uri.encodeComponent(searchQuery)}';
       }
 
-      print('📡 Getting patients');
-      print('🔗 URL: $url');
+      developer.log('📡 Getting patients', name: _tag);
+      developer.log('🔗 URL: $url', name: _tag);
 
       final response = await http.get(
         Uri.parse(url),
@@ -431,13 +433,13 @@ class AuthService {
         },
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Get patients response status: ${response.statusCode}');
-      print('📥 Get patients response body: ${response.body}');
+      developer.log('📥 Get patients response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Get patients response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
       return data;
     } catch (e) {
-      print('❌ Get patients error: $e');
+      developer.log('❌ Get patients error: $e', name: _tag);
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -450,8 +452,8 @@ class AuthService {
       //   return {'success': false, 'message': 'Not authenticated'};
       // }
 
-      print('📡 Getting prescription history for patient $patientId');
-      print('🔗 URL: http://localhost:5000/api/prescriptions/patient/$patientId');
+      developer.log('📡 Getting prescription history for patient $patientId', name: _tag);
+      developer.log('🔗 URL: http://localhost:5000/api/prescriptions/patient/$patientId', name: _tag);
 
       final response = await http.get(
         Uri.parse('http://localhost:5000/api/prescriptions/patient/$patientId'),
@@ -462,13 +464,13 @@ class AuthService {
         },
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Get prescription history response status: ${response.statusCode}');
-      print('📥 Get prescription history response body: ${response.body}');
+      developer.log('📥 Get prescription history response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Get prescription history response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
       return data;
     } catch (e) {
-      print('❌ Get prescription history error: $e');
+      developer.log('❌ Get prescription history error: $e', name: _tag);
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -476,8 +478,8 @@ class AuthService {
   // ==================== FORGOT PASSWORD ====================
   Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
-      print('📡 Forgot password request for: $email');
-      print('🔗 URL: $baseUrl/forgot-password');
+      developer.log('📡 Forgot password request for: $email', name: _tag);
+      developer.log('🔗 URL: $baseUrl/forgot-password', name: _tag);
       
       final response = await http.post(
         Uri.parse('$baseUrl/forgot-password'),
@@ -488,8 +490,8 @@ class AuthService {
         body: jsonEncode({'email': email.toLowerCase()}),
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Forgot password response status: ${response.statusCode}');
-      print('📥 Forgot password response body: ${response.body}');
+      developer.log('📥 Forgot password response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Forgot password response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
 
@@ -498,7 +500,7 @@ class AuthService {
         'message': data['message'] ?? 'If the email exists, a reset link has been sent',
       };
     } catch (e) {
-      print('❌ Forgot password error: $e');
+      developer.log('❌ Forgot password error: $e', name: _tag);
       if (e.toString().contains('SocketException')) {
         return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
       }
@@ -512,8 +514,8 @@ class AuthService {
   // ==================== VERIFY PASSWORD RESET OTP ====================
   Future<Map<String, dynamic>> verifyPasswordResetOtp(String email, String otp) async {
     try {
-      print('📡 Verifying password reset OTP for: $email with code: $otp');
-      print('🔗 URL: $baseUrl/verify-password-reset-otp');
+      developer.log('📡 Verifying password reset OTP for: $email with code: $otp', name: _tag);
+      developer.log('🔗 URL: $baseUrl/verify-password-reset-otp', name: _tag);
       
       final response = await http.post(
         Uri.parse('$baseUrl/verify-password-reset-otp'),
@@ -527,8 +529,8 @@ class AuthService {
         }),
       ).timeout(const Duration(seconds: 30));
 
-      print('📥 Verify password reset OTP response status: ${response.statusCode}');
-      print('📥 Verify password reset OTP response body: ${response.body}');
+      developer.log('📥 Verify password reset OTP response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Verify password reset OTP response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
 
@@ -545,7 +547,7 @@ class AuthService {
         };
       }
     } catch (e) {
-      print('❌ Verification error: $e');
+      developer.log('❌ Verification error: $e', name: _tag);
       if (e.toString().contains('SocketException')) {
         return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
       }
@@ -559,8 +561,8 @@ class AuthService {
   // ==================== VERIFY RESET TOKEN ====================
   Future<Map<String, dynamic>> verifyResetToken(String token) async {
     try {
-      print('📡 Verifying reset token');
-      print('🔗 URL: $baseUrl/verify-reset-token');
+      developer.log('📡 Verifying reset token', name: _tag);
+      developer.log('🔗 URL: $baseUrl/verify-reset-token', name: _tag);
       
       final response = await http.post(
         Uri.parse('$baseUrl/verify-reset-token'),
@@ -571,8 +573,8 @@ class AuthService {
         body: jsonEncode({'token': token}),
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Verify reset token response status: ${response.statusCode}');
-      print('📥 Verify reset token response body: ${response.body}');
+      developer.log('📥 Verify reset token response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Verify reset token response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
 
@@ -589,7 +591,7 @@ class AuthService {
         };
       }
     } catch (e) {
-      print('❌ Verify reset token error: $e');
+      developer.log('❌ Verify reset token error: $e', name: _tag);
       if (e.toString().contains('SocketException')) {
         return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
       }
@@ -603,8 +605,8 @@ class AuthService {
   // ==================== RESET PASSWORD ====================
   Future<Map<String, dynamic>> resetPassword(String token, String newPassword) async {
     try {
-      print('📡 Resetting password');
-      print('🔗 URL: $baseUrl/reset-password');
+      developer.log('📡 Resetting password', name: _tag);
+      developer.log('🔗 URL: $baseUrl/reset-password', name: _tag);
       
       final response = await http.post(
         Uri.parse('$baseUrl/reset-password'),
@@ -618,8 +620,8 @@ class AuthService {
         }),
       ).timeout(const Duration(seconds: 10));
 
-      print('📥 Reset password response status: ${response.statusCode}');
-      print('📥 Reset password response body: ${response.body}');
+      developer.log('📥 Reset password response status: ${response.statusCode}', name: _tag);
+      developer.log('📥 Reset password response body: ${response.body}', name: _tag);
 
       final Map<String, dynamic> data = jsonDecode(response.body);
 
@@ -628,7 +630,7 @@ class AuthService {
         'message': data['message'] ?? 'Password reset successful',
       };
     } catch (e) {
-      print('❌ Reset password error: $e');
+      developer.log('❌ Reset password error: $e', name: _tag);
       if (e.toString().contains('SocketException')) {
         return {'success': false, 'message': 'Cannot connect to server. Make sure backend is running on port 5000'};
       }
