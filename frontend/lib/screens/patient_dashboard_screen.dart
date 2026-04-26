@@ -108,7 +108,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Icon(
@@ -211,12 +211,12 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
                             Icons.trending_up,
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             size: 24,
                           ),
                         ),
@@ -257,7 +257,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFEF4444)
-                                        .withOpacity(0.1),
+                                        .withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
@@ -355,7 +355,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 16,
               offset: const Offset(0, -4),
             ),
@@ -526,7 +526,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
+            color: Colors.blue.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -556,7 +556,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
           Text(
             data.user.email,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontSize: 14,
             ),
           ),
@@ -564,7 +564,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -587,7 +587,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -652,7 +652,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: color, size: 24),
@@ -680,7 +680,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
   Widget _buildModernSearchField() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF979797).withOpacity(0.1),
+        color: const Color(0xFF979797).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: TextFormField(
@@ -846,7 +846,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                 });
               },
               backgroundColor: Colors.grey[100],
-              selectedColor: const Color(0xFF6366F1).withOpacity(0.2),
+              selectedColor: const Color(0xFF6366F1).withValues(alpha: 0.2),
               checkmarkColor: const Color(0xFF6366F1),
               labelStyle: TextStyle(
                 color: isSelected ? const Color(0xFF6366F1) : Colors.grey[700],
@@ -883,7 +883,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -907,7 +907,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                   end: Alignment.bottomRight,
                   colors: [
                     placeholderColor,
-                    placeholderColor.withOpacity(0.7),
+                    placeholderColor.withValues(alpha: 0.7),
                   ],
                 ),
               ),
@@ -1000,7 +1000,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF6366F1).withOpacity(0.1),
+                              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -1084,7 +1084,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [color, color.withOpacity(0.6)],
+          colors: [color, color.withValues(alpha: 0.6)],
         ),
       ),
       child: Center(
@@ -1094,20 +1094,20 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
                 Icons.medication,
                 size: 50,
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
               ),
             ),
             const SizedBox(height: 12),
             Text(
               'Medicine Image',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -1143,7 +1143,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1262,7 +1262,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
               borderRadius: BorderRadius.circular(15),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -1344,7 +1344,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
               borderRadius: BorderRadius.circular(15),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),

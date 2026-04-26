@@ -635,9 +635,4 @@ class AuthService {
   }
 
   // ==================== HELPER METHODS ====================
-
-  static Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
-  }
 }

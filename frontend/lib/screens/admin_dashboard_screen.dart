@@ -164,7 +164,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF1E40AF).withOpacity(0.3),
+                                color: const Color(0xFF1E40AF).withValues(alpha: 0.3),
                                 blurRadius: 20,
                                 offset: const Offset(0, 10),
                               ),
@@ -200,10 +200,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
                                         children: [
                                           Container(
                                             decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(0.2),
+                                              color: Colors.white.withValues(alpha: 0.2),
                                               borderRadius: BorderRadius.circular(16),
                                               border: Border.all(
-                                                color: Colors.white.withOpacity(0.3),
+                                                color: Colors.white.withValues(alpha: 0.3),
                                                 width: 1,
                                               ),
                                             ),
@@ -215,10 +215,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
                                           const SizedBox(width: 8),
                                           Container(
                                             decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(0.2),
+                                              color: Colors.white.withValues(alpha: 0.2),
                                               borderRadius: BorderRadius.circular(16),
                                               border: Border.all(
-                                                color: Colors.white.withOpacity(0.3),
+                                                color: Colors.white.withValues(alpha: 0.3),
                                                 width: 1,
                                               ),
                                             ),
@@ -301,7 +301,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(2, 0),
           ),
@@ -340,7 +340,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
                     ),
                   ),
                   selected: isSelected,
-                  selectedTileColor: const Color(0xFF1E40AF).withOpacity(0.1),
+                  selectedTileColor: const Color(0xFF1E40AF).withValues(alpha: 0.1),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -448,7 +448,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.1),
+                      color: const Color(0xFF10B981).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Text(
@@ -503,13 +503,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
         ],
         border: Border.all(
-          color: Colors.white.withOpacity(0.8),
+          color: Colors.white.withValues(alpha: 0.8),
           width: 1,
         ),
       ),
@@ -524,7 +524,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF1E40AF).withOpacity(0.3),
+                  color: const Color(0xFF1E40AF).withValues(alpha: 0.3),
                   blurRadius: 16,
                   offset: const Offset(0, 8),
                 ),
@@ -561,7 +561,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    color: const Color(0xFF10B981).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
@@ -589,7 +589,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -668,13 +668,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
         ],
         border: Border.all(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -688,7 +688,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -726,7 +726,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 24,
               offset: const Offset(0, 8),
             ),
@@ -751,7 +751,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -770,7 +770,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Ticker
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: _getActivityColor(type).withOpacity(0.1),
+                    color: _getActivityColor(type).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -1370,7 +1370,7 @@ class _DoctorsManagementViewState extends State<DoctorsManagementView> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: isVerified ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                        color: isVerified ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -1615,7 +1615,7 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: isVerified ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                        color: isVerified ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -2046,7 +2046,7 @@ class _PrescriptionsManagementViewState extends State<PrescriptionsManagementVie
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: _getStatusColor(prescription['status']).withOpacity(0.1),
+                                          color: _getStatusColor(prescription['status']).withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(12),
                                         ),
                                         child: Text(
@@ -2466,7 +2466,7 @@ class _DisputesManagementViewState extends State<DisputesManagementView> {
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                             decoration: BoxDecoration(
-                                              color: _getStatusColor(dispute['status']).withOpacity(0.1),
+                                              color: _getStatusColor(dispute['status']).withValues(alpha: 0.1),
                                               borderRadius: BorderRadius.circular(12),
                                             ),
                                             child: Text(
@@ -2482,7 +2482,7 @@ class _DisputesManagementViewState extends State<DisputesManagementView> {
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                             decoration: BoxDecoration(
-                                              color: _getPriorityColor(dispute['priority']).withOpacity(0.1),
+                                              color: _getPriorityColor(dispute['priority']).withValues(alpha: 0.1),
                                               borderRadius: BorderRadius.circular(12),
                                             ),
                                             child: Text(
@@ -2616,7 +2616,7 @@ class BackgroundPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF1E40AF).withOpacity(0.1)
+      ..color = const Color(0xFF1E40AF).withValues(alpha: 0.1)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
 

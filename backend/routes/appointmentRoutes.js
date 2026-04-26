@@ -7,9 +7,10 @@
 const express = require('express');
 const router = express.Router();
 const appointmentController = require('../controllers/appointmentController');
+const { authenticate } = require('../middleware/authMiddleware');
 
 // All appointment routes require authentication
-// router.use(auth);
+router.use(authenticate);
 
 // Create appointment
 router.post('/', appointmentController.createAppointment);

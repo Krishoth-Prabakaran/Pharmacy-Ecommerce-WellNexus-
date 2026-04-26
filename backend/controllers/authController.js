@@ -218,7 +218,7 @@ exports.verifyEmail = async (req, res) => {
       throw new Error('JWT_SECRET environment variable is not configured');
     }
     const token = jwt.sign(
-      { id: user.user_id, role: user.role }, 
+      { user_id: user.user_id, role: user.role }, 
       process.env.JWT_SECRET, 
       { expiresIn: "1d" }
     );
@@ -307,7 +307,7 @@ exports.login = async (req, res) => {
       throw new Error('JWT_SECRET environment variable is not configured');
     }
     const token = jwt.sign(
-      { id: user.user_id, role: user.role }, 
+      { user_id: user.user_id, role: user.role }, 
       process.env.JWT_SECRET, 
       { expiresIn: "1d" }
     );
