@@ -385,13 +385,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
         ],
         border: Border.all(
-          color: Colors.white.withOpacity(0.8),
+          color: Colors.white.withValues(alpha: 0.8),
           width: 1,
         ),
       ),
@@ -406,7 +406,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF6366F1).withOpacity(0.3),
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.3),
                   blurRadius: 16,
                   offset: const Offset(0, 8),
                 ),
@@ -443,7 +443,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    color: const Color(0xFF10B981).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
@@ -471,7 +471,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -540,13 +540,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
               ],
               border: Border.all(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 width: 1,
               ),
             ),
@@ -556,13 +556,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [color.withOpacity(0.2), color.withOpacity(0.1)],
+                      colors: [color.withValues(alpha: 0.2), color.withValues(alpha: 0.1)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: color.withOpacity(0.2),
+                      color: color.withValues(alpha: 0.2),
                       width: 1,
                     ),
                   ),
@@ -581,7 +581,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                         color: color,
                         shadows: [
                           Shadow(
-                            color: color.withOpacity(0.3),
+                            color: color.withValues(alpha: 0.3),
                             offset: const Offset(0, 1),
                             blurRadius: 2,
                           ),
@@ -717,60 +717,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildActionCard(String title, String subtitle, IconData icon, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.1),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
-          border: Border.all(
-            color: color.withOpacity(0.1),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildRecentActivity() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -783,13 +729,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
         ],
         border: Border.all(
-          color: Colors.white.withOpacity(0.8),
+          color: Colors.white.withValues(alpha: 0.8),
           width: 1,
         ),
       ),
@@ -847,13 +793,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [color.withOpacity(0.2), color.withOpacity(0.1)],
+                      colors: [color.withValues(alpha: 0.2), color.withValues(alpha: 0.1)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: color.withOpacity(0.3),
+                      color: color.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -895,12 +841,12 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.arrow_forward_ios,
-                    color: color.withOpacity(0.7),
+                    color: color.withValues(alpha: 0.7),
                     size: 14,
                   ),
                 ),
@@ -911,52 +857,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       },
     );
   }
-
-  Widget _buildActivityItem(String title, String time, IconData icon, Color color) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: color, size: 16),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-              Text(
-                time,
-                style: const TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Icon(
-          Icons.arrow_forward_ios,
-          color: color.withOpacity(0.5),
-          size: 16,
-        ),
-      ],
-    );
-  }
 }
 
-// Enhanced Action Card Widget with hover effects
 class _ActionCard extends StatefulWidget {
   final String title;
   final String subtitle;
@@ -1023,13 +925,13 @@ class _ActionCardState extends State<_ActionCard> with TickerProviderStateMixin 
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: widget.color.withOpacity(0.1 + (_glowAnimation.value * 0.2)),
+                      color: widget.color.withValues(alpha: 0.1 + (_glowAnimation.value * 0.2)),
                       blurRadius: 16 + (_glowAnimation.value * 8),
                       offset: const Offset(0, 8),
                     ),
                   ],
                   border: Border.all(
-                    color: widget.color.withOpacity(0.1 + (_glowAnimation.value * 0.2)),
+                    color: widget.color.withValues(alpha: 0.1 + (_glowAnimation.value * 0.2)),
                     width: 1,
                   ),
                 ),
@@ -1041,15 +943,15 @@ class _ActionCardState extends State<_ActionCard> with TickerProviderStateMixin 
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            widget.color.withOpacity(0.1 + (_glowAnimation.value * 0.1)),
-                            widget.color.withOpacity(0.05 + (_glowAnimation.value * 0.05)),
+                            widget.color.withValues(alpha: 0.1 + (_glowAnimation.value * 0.1)),
+                            widget.color.withValues(alpha: 0.05 + (_glowAnimation.value * 0.05)),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: widget.color.withOpacity(0.2 + (_glowAnimation.value * 0.1)),
+                          color: widget.color.withValues(alpha: 0.2 + (_glowAnimation.value * 0.1)),
                           width: 1,
                         ),
                       ),
@@ -1065,14 +967,14 @@ class _ActionCardState extends State<_ActionCard> with TickerProviderStateMixin 
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1E293B).withOpacity(0.8 + (_glowAnimation.value * 0.2)),
+                        color: const Color(0xFF1E293B).withValues(alpha: 0.8 + (_glowAnimation.value * 0.2)),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       widget.subtitle,
                       style: TextStyle(
-                        color: const Color(0xFF64748B).withOpacity(0.7 + (_glowAnimation.value * 0.3)),
+                        color: const Color(0xFF64748B).withValues(alpha: 0.7 + (_glowAnimation.value * 0.3)),
                         fontSize: 12,
                       ),
                     ),
@@ -1087,12 +989,11 @@ class _ActionCardState extends State<_ActionCard> with TickerProviderStateMixin 
   }
 }
 
-// Background Pattern Painter
 class BackgroundPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF6366F1).withOpacity(0.1)
+      ..color = const Color(0xFF6366F1).withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;
 
     final path = Path();
