@@ -73,10 +73,10 @@ const PharmacyInventoryModel = {
   // ======= Variants =======
   async createVariant(data) {
     const result = await pool.query(
-      `INSERT INTO medicine_variants (medicine_id, strength, form, price)
-       VALUES ($1, $2, $3, $4)
-       RETURNING variant_id, medicine_id, strength, form, price`,
-      [data.medicine_id, data.strength || null, data.form || null, data.price || null]
+      `INSERT INTO medicine_variants (medicine_id, strength, form, price, image_url)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING variant_id, medicine_id, strength, form, price, image_url`,
+      [data.medicine_id, data.strength || null, data.form || null, data.price || null, data.image_url || null]
     );
     return result.rows[0];
   },
@@ -98,6 +98,10 @@ const PharmacyInventoryModel = {
       fields.push(`price = $${index++}`);
       values.push(data.price);
     }
+    if (data.image_url !== undefined) {
+      fields.push(`image_url = $${index++}`);
+      values.push(data.image_url);
+    }
 
     if (fields.length === 0) {
       throw new Error('No fields provided for variant update');
@@ -106,7 +110,7 @@ const PharmacyInventoryModel = {
     values.push(variantId);
     const result = await pool.query(
       `UPDATE medicine_variants SET ${fields.join(', ')} WHERE variant_id = $${index}
-       RETURNING variant_id, medicine_id, strength, form, price`,
+       RETURNING variant_id, medicine_id, strength, form, price, image_url`,
       values
     );
     return result.rows[0];
@@ -122,7 +126,7 @@ const PharmacyInventoryModel = {
 
   async findVariantsByMedicine(medicineId) {
     const result = await pool.query(
-      `SELECT variant_id, medicine_id, strength, form, price
+      `SELECT variant_id, medicine_id, strength, form, price, image_url
        FROM medicine_variants
        WHERE medicine_id = $1
        ORDER BY variant_id`,
@@ -133,7 +137,7 @@ const PharmacyInventoryModel = {
 
   async findVariantById(variantId) {
     const result = await pool.query(
-      `SELECT variant_id, medicine_id, strength, form, price
+      `SELECT variant_id, medicine_id, strength, form, price, image_url
        FROM medicine_variants
        WHERE variant_id = $1`,
       [variantId]
