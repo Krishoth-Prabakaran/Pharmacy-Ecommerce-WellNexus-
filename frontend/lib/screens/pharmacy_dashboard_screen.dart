@@ -674,6 +674,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
     final strengthController = TextEditingController(text: variant?['strength'] ?? '');
     final formController = TextEditingController(text: variant?['form'] ?? '');
     final priceController = TextEditingController(text: variant?['price']?.toString() ?? '');
+    final imageUrlController = TextEditingController(text: variant?['image_url'] ?? '');
 
     final result = await showDialog<bool>(
       context: context,
@@ -682,61 +683,96 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
             padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  variant == null ? 'Add New Variant' : 'Edit Variant',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                Text('for ${medicine['name']}', style: const TextStyle(color: Colors.grey)),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: strengthController,
-                  decoration: InputDecoration(
-                    labelText: 'Strength (e.g., 500mg)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    variant == null ? 'Add New Variant' : 'Edit Variant',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: formController,
-                  decoration: InputDecoration(
-                    labelText: 'Form (e.g., Tablet)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: priceController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    labelText: 'Price',
-                    prefixText: 'LKR ',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel'),
+                  Text('for ${medicine['name']}', style: const TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: strengthController,
+                    decoration: InputDecoration(
+                      labelText: 'Strength (e.g., 500mg)',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6366F1),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: formController,
+                    decoration: InputDecoration(
+                      labelText: 'Form (e.g., Tablet)',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: priceController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Price',
+                      prefixText: 'LKR ',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: imageUrlController,
+                    decoration: InputDecoration(
+                      labelText: 'Image URL (optional)',
+                      hintText: 'https://example.com/image.jpg or local path',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.image),
+                    ),
+                  ),
+                  if (imageUrlController.text.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          height: 120,
+                          color: Colors.grey[100],
+                          child: Image.network(
+                            imageUrlController.text,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey[300],
+                                child: const Center(
+                                  child: Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ),
-                      child: const Text('Save'),
                     ),
-                  ],
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366F1),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('Save'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -750,6 +786,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
       'strength': strengthController.text.trim(),
       'form': formController.text.trim(),
       'price': double.tryParse(priceController.text.trim()) ?? 0.0,
+      'image_url': imageUrlController.text.trim().isEmpty ? null : imageUrlController.text.trim(),
     };
 
     setState(() {
@@ -1261,6 +1298,27 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
                               ),
                               child: Row(
                                 children: [
+                                  if (variant['image_url'] != null && (variant['image_url'] as String).isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 12),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: SizedBox(
+                                          width: 60,
+                                          height: 60,
+                                          child: Image.network(
+                                            variant['image_url'] as String,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Container(
+                                                color: Colors.grey[300],
+                                                child: const Icon(Icons.medical_services, color: Colors.grey),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
