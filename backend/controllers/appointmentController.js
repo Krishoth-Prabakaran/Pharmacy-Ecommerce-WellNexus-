@@ -22,15 +22,47 @@ exports.createAppointment = async (req, res) => {
       notes = ''
     } = req.body;
 
-    // For now, we'll assume doctor_id comes from the request body or session
-    // TODO: Implement proper authentication to get doctor_id from JWT
-    const doctor_id = req.body.doctor_id || 1; // Temporary fallback
+    const userId = req.user?.user_id;
+    const userRole = req.user?.role;
 
-    // Validate required fields
-    if (!patient_id || !appointment_date || !appointment_time) {
+    if (!userId || !userRole) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to create appointments.'
+      });
+    }
+
+    let doctor_id;
+
+    if (userRole === 'doctor') {
+      doctor_id = userId;
+      patient_id = req.body.patient_id;
+      if (!patient_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide patient_id when a doctor creates an appointment.'
+        });
+      }
+    } else if (userRole === 'patient') {
+      patient_id = userId;
+      doctor_id = req.body.doctor_id;
+      if (!doctor_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide doctor_id when a patient requests an appointment.'
+        });
+      }
+    } else {
+      return res.status(403).json({
+        success: false,
+        message: 'Only patients and doctors may create appointments.'
+      });
+    }
+
+    if (!appointment_date || !appointment_time) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide patient_id, appointment_date, and appointment_time'
+        message: 'Please provide appointment_date and appointment_time.'
       });
     }
 
@@ -81,9 +113,24 @@ exports.createAppointment = async (req, res) => {
  */
 exports.getAppointmentsByDoctor = async (req, res) => {
   try {
-    // TODO: Get doctor_id from authentication
-    const doctor_id = req.query.doctor_id || 1; // Temporary fallback
+    const userId = req.user?.user_id;
+    const userRole = req.user?.role;
 
+    if (!userId || !userRole) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to fetch doctor appointments.'
+      });
+    }
+
+    if (userRole !== 'doctor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only doctors may access their appointment list.'
+      });
+    }
+
+    const doctor_id = userId;
     const { status, limit } = req.query;
 
     const appointments = await AppointmentModel.getAppointmentsByDoctor(
@@ -114,8 +161,15 @@ exports.getAppointmentsByDoctor = async (req, res) => {
 exports.getAppointmentById = async (req, res) => {
   try {
     const { id } = req.params;
-    // TODO: Add authentication check
-    // const doctor_id = req.user?.user_id;
+    const userId = req.user?.user_id;
+    const userRole = req.user?.role;
+
+    if (!userId || !userRole) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to access appointment details.'
+      });
+    }
 
     const appointment = await AppointmentModel.getAppointmentById(id);
 
@@ -126,13 +180,19 @@ exports.getAppointmentById = async (req, res) => {
       });
     }
 
-    // TODO: Check if doctor owns this appointment
-    // if (appointment.doctor_id !== doctor_id) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Access denied'
-    //   });
-    // }
+    if (userRole === 'doctor' && appointment.doctor_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Doctor can only view their own appointments.'
+      });
+    }
+
+    if (userRole === 'patient' && appointment.patient_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Patients can only view their own appointments.'
+      });
+    }
 
     res.json({
       success: true,
@@ -157,10 +217,16 @@ exports.updateAppointmentStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, notes } = req.body;
-    // TODO: Get doctor_id from authentication
-    // const doctor_id = req.user?.user_id;
+    const userId = req.user?.user_id;
+    const userRole = req.user?.role;
 
-    // Check if appointment exists and belongs to doctor
+    if (!userId || !userRole) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to update appointment status.'
+      });
+    }
+
     const existingAppointment = await AppointmentModel.getAppointmentById(id);
     if (!existingAppointment) {
       return res.status(404).json({
@@ -169,13 +235,19 @@ exports.updateAppointmentStatus = async (req, res) => {
       });
     }
 
-    // TODO: Check ownership
-    // if (existingAppointment.doctor_id !== doctor_id) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Access denied'
-    //   });
-    // }
+    if (userRole === 'doctor' && existingAppointment.doctor_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Doctors may only update their own appointments.'
+      });
+    }
+
+    if (userRole !== 'doctor' && userRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only doctors or admins may update appointment status.'
+      });
+    }
 
     const updatedAppointment = await AppointmentModel.updateAppointmentStatus(id, status, notes);
 
@@ -203,13 +275,21 @@ exports.updateAppointmentStatus = async (req, res) => {
  */
 exports.getAppointmentsByDateRange = async (req, res) => {
   try {
-    const doctor_id = req.user?.user_id;
+    const userId = req.user?.user_id;
+    const userRole = req.user?.role;
     const { start, end } = req.query;
 
-    if (!doctor_id) {
+    if (!userId || !userRole) {
       return res.status(401).json({
         success: false,
-        message: 'Doctor authentication required'
+        message: 'Authentication required to fetch appointments by date range.'
+      });
+    }
+
+    if (userRole !== 'doctor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only doctors may access appointments by date range.'
       });
     }
 
@@ -220,7 +300,7 @@ exports.getAppointmentsByDateRange = async (req, res) => {
       });
     }
 
-    const appointments = await AppointmentModel.getAppointmentsByDateRange(doctor_id, start, end);
+    const appointments = await AppointmentModel.getAppointmentsByDateRange(userId, start, end);
 
     res.json({
       success: true,
@@ -244,10 +324,16 @@ exports.getAppointmentsByDateRange = async (req, res) => {
 exports.deleteAppointment = async (req, res) => {
   try {
     const { id } = req.params;
-    // TODO: Get doctor_id from authentication
-    // const doctor_id = req.user?.user_id;
+    const userId = req.user?.user_id;
+    const userRole = req.user?.role;
 
-    // Check if appointment exists and belongs to doctor
+    if (!userId || !userRole) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to delete appointments.'
+      });
+    }
+
     const existingAppointment = await AppointmentModel.getAppointmentById(id);
     if (!existingAppointment) {
       return res.status(404).json({
@@ -256,13 +342,19 @@ exports.deleteAppointment = async (req, res) => {
       });
     }
 
-    // TODO: Check ownership
-    // if (existingAppointment.doctor_id !== doctor_id) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Access denied'
-    //   });
-    // }
+    if (userRole === 'doctor' && existingAppointment.doctor_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Doctors may only delete their own appointments.'
+      });
+    }
+
+    if (userRole !== 'doctor' && userRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only doctors or admins may delete appointments.'
+      });
+    }
 
     await AppointmentModel.deleteAppointment(id);
 

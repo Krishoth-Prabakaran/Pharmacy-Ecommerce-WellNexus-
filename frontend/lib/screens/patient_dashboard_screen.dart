@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/patient_service.dart';
 import '../services/auth_service.dart';
-import '../screens/pharmacy_finder_screen.dart';
 import 'edit_profile_screen.dart';
 
 /// Patient Dashboard Screen
@@ -100,92 +99,126 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
             children: [
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                child: Row(
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Column(
                   children: [
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Medicine Store',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                            ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                          SizedBox(height: 6),
-                          Text(
-                            'Browse and order medicines online',
-                            style: TextStyle(
-                              color: Color(0xFFEDE9FE),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          child: const Icon(
+                            Icons.local_pharmacy_outlined,
+                            color: Colors.white,
+                            size: 28,
                           ),
-                        ],
-                      ),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.refresh, color: Colors.white),
+                              onPressed: () {
+                                setState(() {
+                                  _loadDashboardData();
+                                  _loadAvailableStock();
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Refreshing medicines...'),
+                                    duration: Duration(seconds: 1),
+                                    backgroundColor: Color(0xFF6366F1),
+                                  ),
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.shopping_cart, color: Colors.white),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Cart feature coming soon!'),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.logout, color: Colors.white),
+                              onPressed: () async {
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Logout'),
+                                    content: const Text('Are you sure you want to logout?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx, true),
+                                        child: const Text('Logout',
+                                            style: TextStyle(color: Colors.red)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirmed == true) {
+                                  await AuthService.logout();
+                                  if (mounted) {
+                                    Navigator.pushReplacementNamed(context, '/login');
+                                  }
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.refresh, color: Colors.white),
-                          onPressed: () {
-                            setState(() {
-                              _loadDashboardData();
-                              _loadAvailableStock();
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Refreshing medicines...'),
-                                duration: Duration(seconds: 1),
-                                backgroundColor: Color(0xFF6366F1),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Your Pharmacy',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
-                            );
-                          },
+                              SizedBox(height: 4),
+                              Text(
+                                'Find & Order Medicines',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.shopping_cart, color: Colors.white),
-                          onPressed: () {
-                            // Navigate to cart
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Cart feature coming soon!'),
-                                duration: Duration(seconds: 1),
-                              ),
-                            );
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.logout, color: Colors.white),
-                          onPressed: () async {
-                            final confirmed = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Logout'),
-                                content: const Text('Are you sure you want to logout?'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx, false),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx, true),
-                                    child: const Text('Logout',
-                                        style: TextStyle(color: Colors.red)),
-                                  ),
-                                ],
-                              ),
-                            );
-
-                            if (confirmed == true) {
-                              await AuthService.logout();
-                              if (mounted) {
-                                Navigator.pushReplacementNamed(context, '/login');
-                              }
-                            }
-                          },
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.trending_up,
+                            color: Colors.white.withValues(alpha: 0.8),
+                            size: 24,
+                          ),
                         ),
                       ],
                     ),
@@ -224,7 +257,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFEF4444)
-                                        .withOpacity(0.1),
+                                        .withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
@@ -322,7 +355,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 16,
               offset: const Offset(0, -4),
             ),
@@ -493,7 +526,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
+            color: Colors.blue.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -523,7 +556,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
           Text(
             data.user.email,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontSize: 14,
             ),
           ),
@@ -531,7 +564,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -554,7 +587,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -619,7 +652,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: color, size: 24),
@@ -647,7 +680,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
   Widget _buildModernSearchField() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF979797).withOpacity(0.1),
+        color: const Color(0xFF979797).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: TextFormField(
@@ -813,7 +846,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                 });
               },
               backgroundColor: Colors.grey[100],
-              selectedColor: const Color(0xFF6366F1).withOpacity(0.2),
+              selectedColor: const Color(0xFF6366F1).withValues(alpha: 0.2),
               checkmarkColor: const Color(0xFF6366F1),
               labelStyle: TextStyle(
                 color: isSelected ? const Color(0xFF6366F1) : Colors.grey[700],
@@ -834,49 +867,85 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
 
   /// Build e-commerce style product card
   Widget _buildEcommerceProductCard(Map<String, dynamic> item) {
+    final medicineName = item['medicine_name'] ?? 'Medicine';
+    final brand = item['medicine_brand'] ?? 'Brand';
+    final pharmacy = item['pharmacy_name'] ?? 'Pharmacy';
+    final quantity = item['quantity'] ?? '0';
+    final price = item['price'] ?? 'N/A';
+    final imageUrl = item['image_url'];
+
+    // Generate a placeholder color based on medicine name
+    final Color placeholderColor = _getPlaceholderColor(medicineName);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Product Image
+          // Product Image Container
           Expanded(
             flex: 3,
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
                 ),
-                image: item['image_url'] != null
-                    ? DecorationImage(
-                        image: NetworkImage(item['image_url']),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    placeholderColor,
+                    placeholderColor.withValues(alpha: 0.7),
+                  ],
+                ),
               ),
-              child: item['image_url'] == null
-                  ? Icon(
-                      Icons.medication,
-                      size: 50,
-                      color: Colors.grey[400],
+              child: imageUrl != null && imageUrl.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildImagePlaceholder(
+                            medicineName,
+                            placeholderColor,
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Color(0xFF6366F1),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     )
-                  : null,
+                  : _buildImagePlaceholder(medicineName, placeholderColor),
             ),
           ),
-          
+
           // Product Details
           Expanded(
             flex: 2,
@@ -890,90 +959,109 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        item['medicine_name'] ?? 'Medicine',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
+                        medicineName,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${item['strength'] ?? ''} ${item['form'] ?? ''}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1F2937),
                         ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        brand,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[500],
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          Expanded(
+                            child: Text(
+                              pharmacy,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[400],
+                              ),
+                            ),
+                          ),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
+                              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              'In Stock',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.green[700],
-                                fontWeight: FontWeight.w500,
+                              'Stock: $quantity',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: Color(0xFF6366F1),
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
-                          const Spacer(),
-                          if (item['price'] != null)
-                            Text(
-                              '${item['price']}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF6366F1),
-                              ),
-                            ),
                         ],
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Add to Cart Button
- SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('${item['medicine_name']} added to cart'),
-                            duration: const Duration(seconds: 1),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Rs. $price',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF6366F1),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 32,
+                        width: 32,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  '$medicineName added to cart!',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                duration: const Duration(seconds: 2),
+                                backgroundColor: const Color(0xFF6366F1),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF6366F1),
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6366F1),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          child: const Icon(Icons.add, size: 18),
                         ),
                       ),
-                      child: const Text(
-                        'Add to Cart',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -984,6 +1072,69 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
     );
   }
 
+  /// Build image placeholder widget
+  Widget _buildImagePlaceholder(String medicineName, Color color) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color, color.withValues(alpha: 0.6)],
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.medication,
+                size: 50,
+                color: Colors.white.withValues(alpha: 0.9),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Medicine Image',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Get placeholder color based on medicine name
+  Color _getPlaceholderColor(String medicineName) {
+    final colors = [
+      const Color(0xFF6366F1), // Indigo
+      const Color(0xFF3B82F6), // Blue
+      const Color(0xFF10B981), // Green
+      const Color(0xFFF59E0B), // Amber
+      const Color(0xFFEF4444), // Red
+      const Color(0xFF8B5CF6), // Purple
+      const Color(0xFF06B6D4), // Cyan
+      const Color(0xFFEC4899), // Pink
+    ];
+
+    final hash = medicineName.codeUnits.fold<int>(0, (a, b) => a + b);
+    return colors[hash % colors.length];
+  }
+
   /// Build recent prescriptions section
   Widget _buildRecentPrescriptionsSection(List<Prescription> prescriptions) {
     return Container(
@@ -992,7 +1143,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1111,7 +1262,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
               borderRadius: BorderRadius.circular(15),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -1193,7 +1344,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
               borderRadius: BorderRadius.circular(15),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),

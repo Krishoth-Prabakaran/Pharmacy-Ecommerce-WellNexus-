@@ -1,7 +1,9 @@
 // screens/register_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import '../utils/validators.dart';
+import '../utils/keyboard_shortcuts.dart';
 import 'verify_email_screen.dart'; 
 
 class RegisterScreen extends StatefulWidget {
@@ -17,11 +19,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  late FocusNode _usernameFocus;
+  late FocusNode _emailFocus;
+  late FocusNode _passwordFocus;
+  late FocusNode _confirmPasswordFocus;
+  late FocusNode _roleFocus;
+  late FocusNode _registerButtonFocus;
   
   String _selectedRole = 'patient';
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameFocus = FocusNode();
+    _emailFocus = FocusNode();
+    _passwordFocus = FocusNode();
+    _confirmPasswordFocus = FocusNode();
+    _roleFocus = FocusNode();
+    _registerButtonFocus = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _usernameFocus.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _confirmPasswordFocus.dispose();
+    _roleFocus.dispose();
+    _registerButtonFocus.dispose();
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   void _register() async {
     if (!_formKey.currentState!.validate()) return;
@@ -186,6 +220,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         // Username Field
                         TextFormField(
                           controller: _usernameController,
+                          focusNode: _usernameFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) => _emailFocus.requestFocus(),
                           decoration: InputDecoration(
                             labelText: 'Username',
                             labelStyle: const TextStyle(
@@ -219,7 +256,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         // Email Field
                         TextFormField(
                           controller: _emailController,
+                          focusNode: _emailFocus,
                           keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                           decoration: InputDecoration(
                             labelText: 'Email Address',
                             labelStyle: const TextStyle(
@@ -253,7 +293,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         // Password Field
                         TextFormField(
                           controller: _passwordController,
+                          focusNode: _passwordFocus,
                           obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) => _confirmPasswordFocus.requestFocus(),
                           decoration: InputDecoration(
                             labelText: 'Password',
                             labelStyle: const TextStyle(
@@ -304,7 +347,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         // Confirm Password Field
                         TextFormField(
                           controller: _confirmPasswordController,
+                          focusNode: _confirmPasswordFocus,
                           obscureText: _obscureConfirmPassword,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) => _roleFocus.requestFocus(),
                           decoration: InputDecoration(
                             labelText: 'Confirm Password',
                             labelStyle: const TextStyle(
@@ -350,24 +396,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 16),
 
                         // Role Dropdown with Modern Design
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey[300]!, width: 1.5),
-                            color: const Color(0xFFF9FAFB),
-                          ),
-                          child: DropdownButtonFormField<String>(
-                            initialValue: _selectedRole,
-                            decoration: InputDecoration(
-                              labelText: 'Select Your Role',
-                              labelStyle: const TextStyle(
-                                color: Color(0xFF9CA3AF),
-                                fontWeight: FontWeight.w600,
-                              ),
-                              prefixIcon: Padding(
-                                padding: const EdgeInsets.only(left: 16, right: 12),
-                                child: Icon(Icons.work_outline, color: Colors.grey[400]),
-                              ),
+                        Focus(
+                          focusNode: _roleFocus,
+                          onKey: (node, event) {
+                            if (event.isKeyPressed(LogicalKeyboardKey.enter)) {
+                              _registerButtonFocus.requestFocus();
+                              return KeyEventResult.handled;
+                            }
+                            return KeyEventResult.ignored;
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[300]!, width: 1.5),
+                              color: const Color(0xFFF9FAFB),
+                            ),
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _selectedRole,
+                              decoration: InputDecoration(
+                                labelText: 'Select Your Role',
+                                labelStyle: const TextStyle(
+                                  color: Color(0xFF9CA3AF),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                prefixIcon: Padding(
+                                  padding: const EdgeInsets.only(left: 16, right: 12),
+                                  child: Icon(Icons.work_outline, color: Colors.grey[400]),
+                                ),
                               prefixIconConstraints: const BoxConstraints(minWidth: 0),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -410,55 +465,66 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               });
                             },
                           ),
+                          ),
                         ),
                         const SizedBox(height: 28),
 
                         // Register Button
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFF6366F1),
-                                Color(0xFF8B5CF6),
+                        Focus(
+                          focusNode: _registerButtonFocus,
+                          onKey: (node, event) {
+                            if (event.isKeyPressed(LogicalKeyboardKey.enter) && !_isLoading) {
+                              _register();
+                              return KeyEventResult.handled;
+                            }
+                            return KeyEventResult.ignored;
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF6366F1),
+                                  Color(0xFF8B5CF6),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF6366F1).withOpacity(0.4),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 5),
+                                ),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF6366F1).withOpacity(0.4),
-                                blurRadius: 15,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: _isLoading ? null : _register,
-                              borderRadius: BorderRadius.circular(12),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                child: _isLoading
-                                    ? const Center(
-                                        child: SizedBox(
-                                          height: 24,
-                                          width: 24,
-                                          child: CircularProgressIndicator(
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                            strokeWidth: 2.5,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _isLoading ? null : _register,
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  child: _isLoading
+                                      ? const Center(
+                                          child: SizedBox(
+                                            height: 24,
+                                            width: 24,
+                                            child: CircularProgressIndicator(
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                              strokeWidth: 2.5,
+                                            ),
                                           ),
+                                        )
+                                      : const Text(
+                                          'Create Account',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                            letterSpacing: 0.5,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
-                                      )
-                                    : const Text(
-                                        'Create Account',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                          letterSpacing: 0.5,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
+                                ),
                               ),
                             ),
                           ),

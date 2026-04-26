@@ -218,7 +218,7 @@ exports.verifyEmail = async (req, res) => {
       throw new Error('JWT_SECRET environment variable is not configured');
     }
     const token = jwt.sign(
-      { id: user.user_id, role: user.role }, 
+      { user_id: user.user_id, role: user.role }, 
       process.env.JWT_SECRET, 
       { expiresIn: "1d" }
     );
@@ -307,7 +307,7 @@ exports.login = async (req, res) => {
       throw new Error('JWT_SECRET environment variable is not configured');
     }
     const token = jwt.sign(
-      { id: user.user_id, role: user.role }, 
+      { user_id: user.user_id, role: user.role }, 
       process.env.JWT_SECRET, 
       { expiresIn: "1d" }
     );
@@ -542,27 +542,27 @@ exports.forgotPassword = async (req, res) => {
       [otp, otpExpires, user.user_id]
     );
     
-    // Send password reset OTP email (reuse verification email)
-    const emailResult = await emailService.sendVerificationEmail(
-      user.email, 
-      otp, 
-      user.username
-    );
-    
-    if (!emailResult.success) {
-      console.error("❌ Failed to send password reset OTP email:", emailResult.error);
-      return res.status(500).json({ 
-        success: false, 
-        message: "Failed to send OTP email. Please try again.",
-        error: emailResult.error 
-      });
-    }
-    
-    console.log("✅ Password reset OTP sent to:", email);
+    // Respond immediately to avoid timeout
+    console.log("✅ Password reset OTP initiated for:", email);
     res.json({ 
       success: true, 
       message: "If the email exists, an OTP has been sent.",
       email: email
+    });
+    
+    // Send password reset OTP email asynchronously (don't await to prevent timeout)
+    emailService.sendVerificationEmail(
+      user.email, 
+      otp, 
+      user.username
+    ).then((emailResult) => {
+      if (emailResult.success) {
+        console.log("✅ Password reset OTP sent to:", email);
+      } else {
+        console.error("❌ Failed to send password reset OTP email:", emailResult.error);
+      }
+    }).catch((error) => {
+      console.error("❌ Async email send error:", error);
     });
     
   } catch (err) {
@@ -637,11 +637,15 @@ exports.verifyPasswordResetOtp = async (req, res) => {
   }
   
   try {
+    console.log("🔍 Checking database for OTP validation...");
+    
     // Check if user exists and OTP is valid
     const result = await pool.query(
       "SELECT user_id, username, email, verification_token, verification_token_expires FROM users WHERE email = $1 AND verification_token = $2 AND verification_token_expires > $3",
       [email.toLowerCase(), otp, new Date()]
     );
+    
+    console.log("🔍 Database query completed. Found", result.rows.length, "matching records");
     
     if (result.rows.length === 0) {
       return res.status(400).json({ 

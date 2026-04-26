@@ -61,77 +61,91 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
       future: AuthService.isLoggedIn(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+      builder: (context, loggedInSnapshot) {
+        // Still loading
+        if (loggedInSnapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        if (snapshot.data == true) {
-          return FutureBuilder<Map<String, dynamic>?>(
-            future: AuthService.getUserData(),
-            builder: (context, userSnapshot) {
-              if (userSnapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
+        // Not logged in
+        if (loggedInSnapshot.data != true) {
+          return const LoginScreen();
+        }
 
-              final userData = userSnapshot.data;
-              if (userData != null && userData['role'] == 'patient') {
-                return FutureBuilder<bool>(
-                  future: PatientService().hasPatientDetails(userData['user_id'] ?? 0),
-                  builder: (context, detailsSnapshot) {
-                    if (detailsSnapshot.connectionState == ConnectionState.waiting) {
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                      );
-                    }
+        // Logged in - get user data
+        return FutureBuilder<Map<String, dynamic>?>(
+          future: AuthService.getUserData(),
+          builder: (context, userSnapshot) {
+            if (userSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
 
-                    if (detailsSnapshot.data == true) {
-                      return PatientDashboardScreen(userData: userData);
-                    } else {
-                      return PatientRegisterScreen(userData: userData);
-                    }
-                  },
-                );
-              }
+            final userData = userSnapshot.data;
+            if (userData == null) {
+              return const LoginScreen();
+            }
 
-              if (userData != null && userData['role'] == 'pharmacist') {
-                return FutureBuilder<Map<String, dynamic>>(
-                  future: PharmacyService().getPharmacyByEmail(userData['email']),
-                  builder: (context, pharmacySnapshot) {
-                    if (pharmacySnapshot.connectionState == ConnectionState.waiting) {
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                      );
-                    }
+            final role = userData['role'] as String?;
 
-                    if (pharmacySnapshot.hasData && pharmacySnapshot.data?['success'] == true) {
-                      return PharmacyDashboardScreen(pharmacy: pharmacySnapshot.data!['pharmacy']);
-                    }
-
-                    return PharmacyRegisterScreen(userData: userData);
-                  },
-                );
-              }
-
-              if (userData != null && userData['role'] == 'doctor') {
+            // Route based on role
+            switch (role) {
+              case 'patient':
+                return _buildPatientRoute(userData);
+              case 'doctor':
                 return const DashboardScreen();
-              }
-
-              if (userData != null && userData['role'] == 'admin') {
+              case 'pharmacist':
+                return _buildPharmacyRoute(userData);
+              case 'admin':
                 return const AdminDashboardScreen();
-              }
+              default:
+                return const LoginScreen();
+            }
+          },
+        );
+      },
+    );
+  }
 
-              // Fallback for any other roles
-              return const DashboardScreen();
-            },
+  // Patient route with profile check
+  Widget _buildPatientRoute(Map<String, dynamic> userData) {
+    return FutureBuilder<bool>(
+      future: PatientService().hasPatientDetails(userData['user_id'] ?? 0),
+      builder: (context, detailsSnapshot) {
+        if (detailsSnapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        return const LoginScreen();
+        if (detailsSnapshot.data == true) {
+          return PatientDashboardScreen(userData: userData);
+        } else {
+          return PatientRegisterScreen(userData: userData);
+        }
+      },
+    );
+  }
+
+  // Pharmacy route with pharmacy data check
+  Widget _buildPharmacyRoute(Map<String, dynamic> userData) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: PharmacyService().getPharmacyByEmail(userData['email'] ?? ''),
+      builder: (context, pharmacySnapshot) {
+        if (pharmacySnapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (pharmacySnapshot.hasData && pharmacySnapshot.data?['success'] == true) {
+          return PharmacyDashboardScreen(pharmacy: pharmacySnapshot.data!['pharmacy']);
+        }
+
+        return PharmacyRegisterScreen(userData: userData);
       },
     );
   }

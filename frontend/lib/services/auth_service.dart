@@ -5,16 +5,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   // ==================== CONFIGURATION ====================
-  // For web development
+  /// Base URL for authentication API
+  /// 
+  /// Platform-specific URLs:
+  /// - Web: http://localhost:5000/api/auth
+  /// - Android Emulator: http://10.0.2.2:5000/api/auth
+  /// - iOS Simulator: http://localhost:5000/api/auth
+  /// - Physical Device: http://<YOUR_COMPUTER_IP>:5000/api/auth
+  ///   (e.g., http://192.168.1.100:5000/api/auth)
   static const String baseUrl = 'http://localhost:5000/api/auth';
   
-  // For Android Emulator (uncomment if using emulator)
+  // For Android Emulator - uncomment to use:
   // static const String baseUrl = 'http://10.0.2.2:5000/api/auth';
   
-  // For iOS Simulator (uncomment if using simulator)
-  // static const String baseUrl = 'http://localhost:5000/api/auth';
-
-  // ==================== LOGIN ====================
+  // For physical device - replace with your computer IP:
+  // static const String baseUrl = 'http://192.168.1.100:5000/api/auth';
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       print('📡 Login attempt for email: $email');
@@ -520,7 +525,7 @@ class AuthService {
           'email': email.toLowerCase(),
           'otp': otp,
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
 
       print('📥 Verify password reset OTP response status: ${response.statusCode}');
       print('📥 Verify password reset OTP response body: ${response.body}');
@@ -635,9 +640,4 @@ class AuthService {
   }
 
   // ==================== HELPER METHODS ====================
-
-  static Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
-  }
 }

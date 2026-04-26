@@ -85,8 +85,8 @@ class _PharmacySalesScreenState extends State<PharmacySalesScreen> {
               : _buildSalesContent(),
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreateSaleDialog,
-        child: const Icon(Icons.add),
         tooltip: 'Create New Sale',
+        child: const Icon(Icons.add),
       ),
     );
   }

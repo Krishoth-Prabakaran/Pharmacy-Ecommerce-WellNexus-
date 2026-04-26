@@ -48,10 +48,15 @@ exports.savePatientDetails = async (req, res) => {
     }
   }
 
-  if (!user_id && !email) {
-    return res.status(400).json({ 
-      message: "Either user_id or email is required" 
-    });
+  // Validate gender if provided
+  if (gender) {
+    const validGenders = ['male', 'female', 'other'];
+    const normalizedGender = gender.toLowerCase().trim();
+    if (!validGenders.includes(normalizedGender)) {
+      return res.status(400).json({ 
+        message: "Gender must be: male, female, or other" 
+      });
+    }
   }
 
   try {
