@@ -149,7 +149,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
         ],
       ),
     );
-    
+   
     if (shouldLogout == true) {
       await AuthService.logout();
       if (context.mounted) {
@@ -370,7 +370,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
               ),
             ),
             const SizedBox(height: 24),
-            
+           
             // Stats Row 1
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -383,7 +383,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
               ),
             ),
             const SizedBox(height: 12),
-            
+           
             // Stats Row 2
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -396,7 +396,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
               ),
             ),
             const SizedBox(height: 24),
-            
+           
             // Quick Actions
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -425,22 +425,6 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-<<<<<<< HEAD
-                        Chip(
-                          avatar: const Icon(Icons.timer, color: Colors.white70, size: 18),
-                          backgroundColor: const Color.from(alpha: 0.235, red: 0, green: 0, blue: 0),
-                          label: Text('Open: ${_pharmacy?['open_time'] ?? 'N/A'}', style: const TextStyle(color: Colors.white)),
-                        ),
-                        Chip(
-                          avatar: const Icon(Icons.timer_off, color: Colors.white70, size: 18),
-                          backgroundColor: const Color.fromARGB(60, 0, 0, 0),
-                          label: Text('Close: ${_pharmacy?['close_time'] ?? 'N/A'}', style: const TextStyle(color: Colors.white)),
-                        ),
-                        Chip(
-                          avatar: const Icon(Icons.phone, color: Colors.white70, size: 18),
-                          backgroundColor: const Color.fromARGB(60, 0, 0, 0),
-                          label: Text(_pharmacy?['phone'] ?? 'No phone', style: const TextStyle(color: Colors.white)),
-=======
                         _buildQuickActionButton(
                           icon: Icons.add_box,
                           label: 'Add Medicine',
@@ -474,7 +458,6 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> with 
                               ),
                             );
                           },
->>>>>>> b81253272587c2138886c074dc12012074ee4f4b
                         ),
                       ],
                     ),
