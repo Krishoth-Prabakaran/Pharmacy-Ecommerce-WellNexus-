@@ -195,7 +195,7 @@ class AuthService {
     final token = data['token'] ?? '';
     
     print('💾 Storing user data:');
-    print('   Token: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+    print('   Token: [REDACTED for security]');
     print('   User ID: ${userData['user_id']}');
     print('   Username: ${userData['username']}');
     print('   Email: ${userData['email']}');

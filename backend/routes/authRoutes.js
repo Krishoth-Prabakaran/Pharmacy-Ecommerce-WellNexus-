@@ -1,12 +1,39 @@
 // backend/routes/authRoutes.js
 const express = require("express");
 const router = express.Router();
+const rateLimit = require("express-rate-limit");
 const authController = require("../controllers/authController");
 
 /**
  * Authentication Routes
  * Base path: /api/auth
  */
+
+// ==================== RATE LIMITING MIDDLEWARE ====================
+// Protect against brute force attacks
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  message: "Too many login attempts. Please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // 3 registrations per hour per IP
+  message: "Too many registrations from this IP. Please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const otpLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 5, // 5 OTP verification attempts
+  message: "Too many OTP attempts. Please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // ==================== PUBLIC ROUTES ====================
 
@@ -17,7 +44,7 @@ const authController = require("../controllers/authController");
  * @body    { email, password }
  * @returns { token, role, user_id, username, email, email_verified }
  */
-router.post("/login", authController.login);
+router.post("/login", loginLimiter, authController.login);
 
 /**
  * @route   POST /api/auth/register
@@ -26,7 +53,7 @@ router.post("/login", authController.login);
  * @body    { username, email, password, role }
  * @returns { success, message, user, email_sent }
  */
-router.post("/register", authController.register);
+router.post("/register", registerLimiter, authController.register);
 
  
 
@@ -44,7 +71,7 @@ router.post("/register", authController.register);
 
  */
 
-router.post("/verify-email", authController.verifyEmail);
+router.post("/verify-email", otpLimiter, authController.verifyEmail);
 
  
 
@@ -57,7 +84,7 @@ router.post("/verify-email", authController.verifyEmail);
  * @body    { email }
  * @returns { success, message, email_sent }
  */
-router.post("/resend-verification", authController.resendVerification);
+router.post("/resend-verification", otpLimiter, authController.resendVerification);
 
 /**
  * @route   GET /api/auth/verification-status
