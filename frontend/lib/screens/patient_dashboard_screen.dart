@@ -1,6 +1,7 @@
 // screens/patient_dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../services/patient_service.dart';
 import '../services/auth_service.dart';
 import 'edit_profile_screen.dart';
@@ -865,17 +866,35 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
     );
   }
 
-  /// Build e-commerce style product card
+  /// Build e-commerce style product card with CachedNetworkImage
   Widget _buildEcommerceProductCard(Map<String, dynamic> item) {
     final medicineName = item['medicine_name'] ?? 'Medicine';
     final brand = item['medicine_brand'] ?? 'Brand';
     final pharmacy = item['pharmacy_name'] ?? 'Pharmacy';
     final quantity = item['quantity'] ?? '0';
     final price = item['price'] ?? 'N/A';
-    final imageUrl = item['image_url'];
+    String? imageUrl = item['image_url'];
+
+    // Filter out problematic domains or invalid URLs
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      // Skip known problematic domains
+      if (imageUrl.contains('suplara.com')) {
+        print('⚠️ Skipping problematic domain: suplara.com');
+        imageUrl = null;
+      }
+      // Ensure HTTPS
+      else if (imageUrl.startsWith('http://')) {
+        imageUrl = imageUrl.replaceFirst('http://', 'https://');
+      }
+    }
 
     // Generate a placeholder color based on medicine name
     final Color placeholderColor = _getPlaceholderColor(medicineName);
+
+    // Debug print to check image URL
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      print('🖼️ Loading image for $medicineName: $imageUrl');
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -911,34 +930,26 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                   ],
                 ),
               ),
-              child: imageUrl != null && imageUrl.isNotEmpty
+              child: (imageUrl != null && imageUrl.isNotEmpty)
                   ? ClipRRect(
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(16),
                         topRight: Radius.circular(16),
                       ),
-                      child: Image.network(
-                        imageUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildImagePlaceholder(
-                            medicineName,
-                            placeholderColor,
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                Color(0xFF6366F1),
-                              ),
+                        width: double.infinity,
+                        placeholder: (context, url) => Center(
+                          child: CircularProgressIndicator(
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF6366F1),
                             ),
-                          );
+                          ),
+                        ),
+                        errorWidget: (context, url, error) {
+                          print('❌ CachedImage error for $medicineName: $error');
+                          return _buildImagePlaceholder(medicineName, placeholderColor);
                         },
                       ),
                     )

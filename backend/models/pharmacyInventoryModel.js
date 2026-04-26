@@ -281,7 +281,7 @@ const PharmacyInventoryModel = {
   async findStockByPharmacy(pharmacyId) {
     const result = await pool.query(
       `SELECT s.stock_id, s.pharmacy_id, s.variant_id, s.quantity, s.stocking_date, s.expiry_date, s.dealer_id,
-              v.strength, v.form, v.price,
+              v.strength, v.form, v.price, v.image_url,
               m.name AS medicine_name, m.brand AS medicine_brand, m.manufacturer AS medicine_manufacturer,
               d.dealer_name, d.phone AS dealer_phone, d.email AS dealer_email
        FROM pharmacy_stock s
@@ -299,7 +299,7 @@ const PharmacyInventoryModel = {
   async findLowStockByPharmacy(pharmacyId, threshold = 10) {
     const result = await pool.query(
       `SELECT s.stock_id, s.pharmacy_id, s.variant_id, s.quantity, s.stocking_date, s.expiry_date, s.dealer_id,
-              v.strength, v.form, v.price,
+              v.strength, v.form, v.price, v.image_url,
               m.name AS medicine_name, m.brand AS medicine_brand, m.manufacturer AS medicine_manufacturer,
               d.dealer_id, d.dealer_name, d.phone AS dealer_phone, d.email AS dealer_email
        FROM pharmacy_stock s
@@ -336,7 +336,7 @@ const PharmacyInventoryModel = {
     }
 
     const query = `SELECT s.stock_id, s.pharmacy_id, s.variant_id, s.quantity, s.stocking_date, s.expiry_date, s.dealer_id,
-              v.strength, v.form, v.price,
+              v.strength, v.form, v.price, v.image_url,
               m.name AS medicine_name, m.brand AS medicine_brand, m.manufacturer AS medicine_manufacturer,
               d.dealer_name, d.phone AS dealer_phone, d.email AS dealer_email,
               p.pharmacy_name, p.address AS pharmacy_address, p.phone AS pharmacy_phone, p.open_time, p.close_time
