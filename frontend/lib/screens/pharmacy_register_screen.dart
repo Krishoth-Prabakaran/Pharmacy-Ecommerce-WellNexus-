@@ -28,6 +28,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
   TimeOfDay? _openTime;
   TimeOfDay? _closeTime;
   bool _isLoading = false;
+  bool _hasValidUserData = true;
 
   // Branches management
   late List<Map<String, dynamic>> _branches;
@@ -37,6 +38,10 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // Validate userData before proceeding
+    _validateUserData();
+    
     _branches = [
       {
         'branch_name': 'Main Branch',
@@ -49,7 +54,58 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
         'is_main_branch': true,
       }
     ];
-    print('📱 PharmacyRegisterScreen received: ${widget.userData['username']}');
+    
+    // Debug logging
+    print('📱 PharmacyRegisterScreen initialized');
+    print('📱 userData: ${widget.userData}');
+    print('📱 username: ${widget.userData['username']}');
+    print('📱 email: ${widget.userData['email']}');
+    print('📱 user_id: ${widget.userData['user_id']}');
+  }
+  
+  void _validateUserData() {
+    if (widget.userData == null) {
+      print('❌ ERROR: userData is null');
+      _hasValidUserData = false;
+      _showErrorAndRedirect('Invalid user data. Please login again.');
+      return;
+    }
+    
+    if (widget.userData['user_id'] == null) {
+      print('❌ ERROR: user_id is null in userData');
+      _hasValidUserData = false;
+      _showErrorAndRedirect('Missing user ID. Please login again.');
+      return;
+    }
+    
+    if (widget.userData['username'] == null || widget.userData['username'].toString().isEmpty) {
+      print('⚠️ WARNING: username is missing or empty');
+    }
+    
+    if (widget.userData['email'] == null || widget.userData['email'].toString().isEmpty) {
+      print('⚠️ WARNING: email is missing or empty');
+    }
+    
+    _hasValidUserData = true;
+  }
+  
+  void _showErrorAndRedirect(String message) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/login');
+          }
+        });
+      }
+    });
   }
 
   Future<void> _selectTime(BuildContext context, bool isOpenTime) async {
@@ -102,6 +158,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
         _branches[index]['latitude'] = position.latitude;
         _branches[index]['longitude'] = position.longitude;
       });
+      _showSnackBar('Location updated successfully!', Colors.green);
     } catch (error) {
       _showSnackBar('Failed to get current location: $error', Colors.red);
     }
@@ -148,6 +205,12 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
   }
 
   Future<void> _registerPharmacy() async {
+    // Check if user data is valid first
+    if (!_hasValidUserData) {
+      _showSnackBar('Invalid user session. Please login again.', Colors.red);
+      return;
+    }
+    
     if (_formKey.currentState!.validate()) {
       // Validate branches
       if (_branches.isEmpty) {
@@ -189,10 +252,17 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
       final pharmacyData = {
         'pharmacy_name': _pharmacyNameController.text.trim(),
         'branches': branches,
-        'username': widget.userData['username'],
-        'email': widget.userData['email'],
+        'username': widget.userData['username'] ?? '',
+        'email': widget.userData['email'] ?? '',
         'user_id': widget.userData['user_id'],
       };
+      
+      print('📤 Sending pharmacy registration data:');
+      print('   pharmacy_name: ${pharmacyData['pharmacy_name']}');
+      print('   user_id: ${pharmacyData['user_id']}');
+      print('   username: ${pharmacyData['username']}');
+      print('   email: ${pharmacyData['email']}');
+      print('   branches count: ${branches.length}');
 
       final result = await PharmacyService().registerPharmacy(pharmacyData);
 
@@ -209,7 +279,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
           }
         });
       } else {
-        _showSnackBar(result['message'], Colors.red);
+        _showSnackBar(result['message'] ?? 'Registration failed', Colors.red);
       }
     }
   }
@@ -227,6 +297,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // Important: Prevents overflow
           children: [
             // Branch Header
             Row(
@@ -424,8 +495,9 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Map Location Picker
+            // Map Location Picker - with fixed height
             MapLocationPicker(
+              height: 200, // Fixed height to prevent overflow
               selectedLocation: branch['latitude'] != null && branch['longitude'] != null
                   ? LatLng(branch['latitude'] as double, branch['longitude'] as double)
                   : _defaultLocation,
@@ -540,6 +612,54 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // If user data is invalid, show error state
+    if (!_hasValidUserData) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF6366F1),
+                Color(0xFF8B5CF6),
+                Color(0xFFEC4899),
+              ],
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.white),
+                const SizedBox(height: 16),
+                const Text(
+                  'Invalid Session',
+                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Please login again',
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushReplacementNamed(context, '/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF6366F1),
+                  ),
+                  child: const Text('Go to Login'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -555,6 +675,8 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
         ),
         child: SafeArea(
           child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -622,9 +744,9 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'Welcome, !',
-                        style: TextStyle(
+                      Text(
+                        'Welcome, ${widget.userData['username'] ?? 'Pharmacist'}!',
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF1F2937),
@@ -713,11 +835,11 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                             prefixIconConstraints: const BoxConstraints(minWidth: 0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!, width: 1.5),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -751,11 +873,11 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                             prefixIconConstraints: const BoxConstraints(minWidth: 0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[3]!, width: 1.5),
+                              borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -770,8 +892,9 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Latitude & Longitude
+                        // Branches Section
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
                               'Branches',
@@ -783,10 +906,11 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                             ),
                             ElevatedButton.icon(
                               onPressed: _addBranch,
-                              icon: const Icon(Icons.add),
+                              icon: const Icon(Icons.add, size: 18),
                               label: const Text('Add Branch'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF6366F1),
+                                foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -804,7 +928,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
 
                         const SizedBox(height: 16),
 
-                        // Open & Close Time
+                        // Open & Close Time (for main pharmacy - kept for backward compatibility)
                         Row(
                           children: [
                             Expanded(
@@ -813,7 +937,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey[3]!, width: 1.5),
+                                    border: Border.all(color: Colors.grey.shade300, width: 1.5),
                                     borderRadius: BorderRadius.circular(12),
                                     color: const Color(0xFFF9FAFB),
                                   ),
@@ -844,7 +968,7 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey[3]!, width: 1.5),
+                                    border: Border.all(color: Colors.grey.shade300, width: 1.5),
                                     borderRadius: BorderRadius.circular(12),
                                     color: const Color(0xFFF9FAFB),
                                   ),
@@ -936,6 +1060,8 @@ class _PharmacyRegisterScreenState extends State<PharmacyRegisterScreen> {
   @override
   void dispose() {
     _pharmacyNameController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 }

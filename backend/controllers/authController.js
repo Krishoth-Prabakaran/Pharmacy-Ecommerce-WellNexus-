@@ -14,7 +14,6 @@ exports.register = async (req, res) => {
 
   try {
     // ==================== INPUT VALIDATION ====================
-    // Validate email format
     const emailValidation = Validators.validateEmail(email);
     if (!emailValidation.valid) {
       return res.status(400).json({ 
@@ -23,7 +22,6 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Validate username
     const usernameValidation = Validators.validateUsername(username);
     if (!usernameValidation.valid) {
       return res.status(400).json({ 
@@ -32,7 +30,6 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Validate password strength
     const passwordValidation = Validators.validatePassword(password);
     if (!passwordValidation.valid) {
       return res.status(400).json({ 
@@ -41,7 +38,6 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Validate role
     const roleValidation = Validators.validateRole(role);
     if (!roleValidation.valid) {
       return res.status(400).json({ 
@@ -64,11 +60,10 @@ exports.register = async (req, res) => {
     if (userExists.rows.length > 0) {
       const user = userExists.rows[0];
       
-      // Case 1: The user exists but is NOT verified (Safe to update and resend OTP)
+      // Case 1: The user exists but is NOT verified
       if (!user.email_verified) {
         console.log("🔄 Updating unverified user:", email);
         
-        // Update both just in case they changed the username for the same email
         await pool.query(
           "UPDATE users SET verification_token = $1, verification_token_expires = $2, username = $3 WHERE email = $4",
           [otp, otpExpires, username, email]
@@ -223,19 +218,28 @@ exports.verifyEmail = async (req, res) => {
       { expiresIn: "1d" }
     );
 
+    // Fetch the complete user data to ensure all fields are present
+    const completeUserResult = await pool.query(
+      "SELECT user_id, username, email, role, created_at FROM users WHERE user_id = $1",
+      [user.user_id]
+    );
+    const completeUser = completeUserResult.rows[0];
+
     console.log("✅ Email verified successfully for:", email);
-    
+    console.log("📦 Returning user data:", completeUser);
+
     res.json({
       success: true,
       message: "Email verified successfully!",
       token,
       user: { 
-        user_id: user.user_id, 
-        username: user.username, 
-        email: user.email, 
-        role: user.role 
+        user_id: completeUser.user_id,
+        username: completeUser.username,
+        email: completeUser.email,
+        role: completeUser.role
       }
     });
+    
   } catch (err) {
     console.error("❌ Verification error:", err.message);
     console.error("Stack:", err.stack);
@@ -253,7 +257,6 @@ exports.login = async (req, res) => {
   
   console.log("🔑 Login attempt for email:", email);
   
-  // Validate email and password presence
   if (!email || !password) {
     return res.status(400).json({ 
       success: false, 
@@ -261,7 +264,6 @@ exports.login = async (req, res) => {
     });
   }
 
-  // Validate email format
   const emailValidation = Validators.validateEmail(email);
   if (!emailValidation.valid) {
     return res.status(400).json({ 
@@ -346,7 +348,6 @@ exports.resendVerification = async (req, res) => {
   }
   
   try {
-    // Check if user exists and is not verified
     const userResult = await pool.query(
       "SELECT user_id, username, email_verified FROM users WHERE email = $1",
       [email.toLowerCase()]
@@ -368,18 +369,15 @@ exports.resendVerification = async (req, res) => {
       });
     }
     
-    // Generate new OTP (cryptographically secure)
     const crypto = require('crypto');
     const otp = crypto.randomInt(100000, 1000000).toString();
     const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     
-    // Update user with new OTP
     await pool.query(
       "UPDATE users SET verification_token = $1, verification_token_expires = $2 WHERE email = $3",
       [otp, otpExpires, email.toLowerCase()]
     );
     
-    // Send new OTP email
     const emailResult = await emailService.sendVerificationEmail(email, otp, user.username);
     
     if (!emailResult.success) {
@@ -508,14 +506,12 @@ exports.forgotPassword = async (req, res) => {
   }
   
   try {
-    // Check if user exists and is verified
     const result = await pool.query(
       "SELECT user_id, username, email, email_verified FROM users WHERE email = $1",
       [email.toLowerCase()]
     );
     
     if (result.rows.length === 0) {
-      // For security, don't reveal if email exists or not
       return res.json({ 
         success: true, 
         message: "If the email exists, an OTP has been sent." 
@@ -531,18 +527,15 @@ exports.forgotPassword = async (req, res) => {
       });
     }
     
-    // Generate OTP (cryptographically secure) for password reset
     const crypto = require('crypto');
     const otp = crypto.randomInt(100000, 1000000).toString();
-    const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 hour
+    const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     
-    // Store OTP in database (reuse verification_token fields)
     await pool.query(
       "UPDATE users SET verification_token = $1, verification_token_expires = $2 WHERE user_id = $3",
       [otp, otpExpires, user.user_id]
     );
     
-    // Respond immediately to avoid timeout
     console.log("✅ Password reset OTP initiated for:", email);
     res.json({ 
       success: true, 
@@ -550,7 +543,7 @@ exports.forgotPassword = async (req, res) => {
       email: email
     });
     
-    // Send password reset OTP email asynchronously (don't await to prevent timeout)
+    // Send password reset OTP email asynchronously
     emailService.sendVerificationEmail(
       user.email, 
       otp, 
@@ -589,7 +582,6 @@ exports.verifyResetToken = async (req, res) => {
   }
   
   try {
-    // Check if token exists and is not expired
     const result = await pool.query(
       "SELECT user_id, username, email, verification_token, verification_token_expires FROM users WHERE verification_token = $1 AND verification_token_expires > $2",
       [token, new Date()]
@@ -639,7 +631,6 @@ exports.verifyPasswordResetOtp = async (req, res) => {
   try {
     console.log("🔍 Checking database for OTP validation...");
     
-    // Check if user exists and OTP is valid
     const result = await pool.query(
       "SELECT user_id, username, email, verification_token, verification_token_expires FROM users WHERE email = $1 AND verification_token = $2 AND verification_token_expires > $3",
       [email.toLowerCase(), otp, new Date()]
@@ -656,12 +647,10 @@ exports.verifyPasswordResetOtp = async (req, res) => {
     
     const user = result.rows[0];
     
-    // Generate a temporary reset token
     const crypto = require('crypto');
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
     
-    // Update with reset token (clear OTP)
     await pool.query(
       "UPDATE users SET verification_token = $1, verification_token_expires = $2 WHERE user_id = $3",
       [resetToken, resetTokenExpiry, user.user_id]
@@ -703,7 +692,6 @@ exports.resetPassword = async (req, res) => {
   }
   
   try {
-    // Validate password strength
     const passwordValidation = Validators.validatePassword(newPassword);
     if (!passwordValidation.valid) {
       return res.status(400).json({ 
@@ -712,7 +700,6 @@ exports.resetPassword = async (req, res) => {
       });
     }
     
-    // Check if token exists and is not expired
     const result = await pool.query(
       "SELECT user_id FROM users WHERE verification_token = $1 AND verification_token_expires > $2",
       [token, new Date()]
@@ -727,11 +714,9 @@ exports.resetPassword = async (req, res) => {
     
     const userId = result.rows[0].user_id;
     
-    // Hash new password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     
-    // Update password and clear reset token
     await pool.query(
       "UPDATE users SET password_hash = $1, verification_token = NULL, verification_token_expires = NULL WHERE user_id = $2",
       [hashedPassword, userId]

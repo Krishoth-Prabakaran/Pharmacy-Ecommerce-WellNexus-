@@ -84,28 +84,57 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   }
 
   void _navigateBasedOnRole(Map<String, dynamic> user) {
-    if (!mounted) return;
-    
-    if (user['role'] == 'patient') {
-      Navigator.pushReplacement(
-        context, 
-        MaterialPageRoute(builder: (context) => PatientRegisterScreen(userData: user))
-      );
-    } else if (user['role'] == 'pharmacist') {
-      Navigator.pushReplacement(
-        context, 
-        MaterialPageRoute(builder: (context) => PharmacyRegisterScreen(userData: user))
-      );
-    } else if (user['role'] == 'doctor') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => DoctorRegisterScreen(userData: user))
-      );
-    } else {
-      Navigator.pushReplacementNamed(context, '/dashboard');
-    }
+  if (!mounted) return;
+  
+  // Debug: Log the user data to see what's coming from backend
+  print('📱 _navigateBasedOnRole received user data: $user');
+  print('📱 Role: ${user['role']}');
+  print('📱 User ID: ${user['user_id']}');
+  print('📱 Email: ${user['email']}');
+  
+  // Validate required fields before navigation
+  if (user['user_id'] == null) {
+    print('❌ ERROR: user_id is null in user data!');
+    _showErrorAndGoToLogin('Invalid user data. Please login again.');
+    return;
   }
+  
+  if (user['role'] == 'patient') {
+    Navigator.pushReplacement(
+      context, 
+      MaterialPageRoute(
+        builder: (context) => PatientRegisterScreen(userData: user)
+      )
+    );
+  } else if (user['role'] == 'pharmacist') {
+    Navigator.pushReplacement(
+      context, 
+      MaterialPageRoute(
+        builder: (context) => PharmacyRegisterScreen(userData: user)
+      )
+    );
+  } else if (user['role'] == 'doctor') {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DoctorRegisterScreen(userData: user)
+      )
+    );
+  } else {
+    Navigator.pushReplacementNamed(context, '/dashboard');
+  }
+}
 
+void _showErrorAndGoToLogin(String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message), backgroundColor: Colors.red),
+  );
+  Future.delayed(const Duration(seconds: 2), () {
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  });
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
