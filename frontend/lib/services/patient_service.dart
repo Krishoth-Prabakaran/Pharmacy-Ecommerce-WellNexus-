@@ -320,6 +320,13 @@ class PatientService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        
+        // Debug: Print first item to see if image_url is present
+        if (data['stock'] != null && data['stock'].isNotEmpty) {
+          print('📸 First stock item with image_url: ${data['stock'][0]['image_url']}');
+          print('📸 Full first item: ${data['stock'][0]}');
+        }
+        
         return data as Map<String, dynamic>;
       }
 
