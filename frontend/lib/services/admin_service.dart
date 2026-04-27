@@ -1,5 +1,6 @@
 // services/admin_service.dart
 import 'dart:convert';
+import 'dart:math';  // Add this import
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
@@ -9,19 +10,27 @@ class AdminService {
   // Get headers with authorization token
   Future<Map<String, String>> _getHeaders() async {
     final token = await AuthService.getToken();
+    print('🔑 AdminService token: ${token != null ? 'Present (${token.substring(0, min(20, token.length))}...)' : 'Missing'}');
     return {
       'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 
   // ==================== DASHBOARD STATS ====================
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
+      final headers = await _getHeaders();
+      print('📊 AdminService: Fetching dashboard stats');
+      print('📊 Headers: $headers');
+      
       final response = await http.get(
         Uri.parse('$_baseUrl/stats'),
-        headers: await _getHeaders(),
-      );
+        headers: headers,
+      ).timeout(const Duration(seconds: 15));
+
+      print('📊 Dashboard stats response status: ${response.statusCode}');
+      print('📊 Dashboard stats response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -29,6 +38,7 @@ class AdminService {
         throw Exception('Failed to load dashboard stats: ${response.statusCode}');
       }
     } catch (e) {
+      print('❌ Error fetching dashboard stats: $e');
       throw Exception('Error fetching dashboard stats: $e');
     }
   }
@@ -59,7 +69,7 @@ class AdminService {
       final response = await http.get(
         Uri.parse('$_baseUrl/users?$queryString'),
         headers: await _getHeaders(),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -77,7 +87,7 @@ class AdminService {
         Uri.parse('$_baseUrl/users/$userId/role'),
         headers: await _getHeaders(),
         body: json.encode({'role': role}),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -94,7 +104,7 @@ class AdminService {
       final response = await http.delete(
         Uri.parse('$_baseUrl/users/$userId'),
         headers: await _getHeaders(),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -112,7 +122,7 @@ class AdminService {
         Uri.parse('$_baseUrl/users/$userId/deactivate'),
         headers: await _getHeaders(),
         body: json.encode({'isActive': isActive}),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -130,7 +140,7 @@ class AdminService {
         Uri.parse('$_baseUrl/users/$userId/reset-password'),
         headers: await _getHeaders(),
         body: json.encode({'newPassword': newPassword}),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -162,7 +172,7 @@ class AdminService {
       final response = await http.get(
         Uri.parse('$_baseUrl/patients?$queryString'),
         headers: await _getHeaders(),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -171,23 +181,6 @@ class AdminService {
       }
     } catch (e) {
       throw Exception('Error fetching patients: $e');
-    }
-  }
-
-  Future<Map<String, dynamic>> getPatientDetails(int patientId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/patients/$patientId'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to load patient details: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error fetching patient details: $e');
     }
   }
 
@@ -211,7 +204,7 @@ class AdminService {
       final response = await http.get(
         Uri.parse('$_baseUrl/doctors?$queryString'),
         headers: await _getHeaders(),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -232,36 +225,27 @@ class AdminService {
       final Map<String, dynamic> body = {'isVerified': isVerified};
       if (notes != null && notes.isNotEmpty) body['notes'] = notes;
 
+      print('🔍 AdminService: Verifying doctor $doctorId, isVerified=$isVerified');
+      print('🔍 Request body: $body');
+
       final response = await http.put(
         Uri.parse('$_baseUrl/doctors/$doctorId/verify'),
         headers: await _getHeaders(),
         body: json.encode(body),
-      );
+      ).timeout(const Duration(seconds: 15));
+
+      print('🔍 Verify doctor response status: ${response.statusCode}');
+      print('🔍 Verify doctor response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
-        throw Exception('Failed to verify doctor: ${response.statusCode}');
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to verify doctor: ${response.statusCode}');
       }
     } catch (e) {
+      print('❌ Error verifying doctor: $e');
       throw Exception('Error verifying doctor: $e');
-    }
-  }
-
-  Future<Map<String, dynamic>> getDoctorDetails(int doctorId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/doctors/$doctorId'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to load doctor details: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error fetching doctor details: $e');
     }
   }
 
@@ -285,11 +269,10 @@ class AdminService {
       final response = await http.get(
         Uri.parse('$_baseUrl/pharmacies?$queryString'),
         headers: await _getHeaders(),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        // Transform the response to ensure consistent field names
         if (data['pharmacies'] != null) {
           final transformedPharmacies = (data['pharmacies'] as List).map((pharmacy) {
             return {
@@ -318,36 +301,27 @@ class AdminService {
       final Map<String, dynamic> body = {'isVerified': isVerified};
       if (notes != null && notes.isNotEmpty) body['notes'] = notes;
 
+      print('🔍 AdminService: Verifying pharmacy $pharmacyId, isVerified=$isVerified');
+      print('🔍 Request body: $body');
+
       final response = await http.put(
         Uri.parse('$_baseUrl/pharmacies/$pharmacyId/verify'),
         headers: await _getHeaders(),
         body: json.encode(body),
-      );
+      ).timeout(const Duration(seconds: 15));
+
+      print('🔍 Verify pharmacy response status: ${response.statusCode}');
+      print('🔍 Verify pharmacy response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
-        throw Exception('Failed to verify pharmacy: ${response.statusCode}');
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to verify pharmacy: ${response.statusCode}');
       }
     } catch (e) {
+      print('❌ Error verifying pharmacy: $e');
       throw Exception('Error verifying pharmacy: $e');
-    }
-  }
-
-  Future<Map<String, dynamic>> getPharmacyDetails(int pharmacyId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/pharmacies/$pharmacyId'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to load pharmacy details: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error fetching pharmacy details: $e');
     }
   }
 
@@ -371,7 +345,7 @@ class AdminService {
       final response = await http.get(
         Uri.parse('$_baseUrl/appointments?$queryString'),
         headers: await _getHeaders(),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -392,7 +366,7 @@ class AdminService {
         Uri.parse('$_baseUrl/appointments/$appointmentId/status'),
         headers: await _getHeaders(),
         body: json.encode({'status': status}),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -424,7 +398,7 @@ class AdminService {
       final response = await http.get(
         Uri.parse('$_baseUrl/prescriptions?$queryString'),
         headers: await _getHeaders(),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -445,7 +419,7 @@ class AdminService {
         Uri.parse('$_baseUrl/prescriptions/$prescriptionId/status'),
         headers: await _getHeaders(),
         body: json.encode({'status': status}),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -477,7 +451,7 @@ class AdminService {
       final response = await http.get(
         Uri.parse('$_baseUrl/orders?$queryString'),
         headers: await _getHeaders(),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -489,51 +463,13 @@ class AdminService {
     }
   }
 
-  Future<Map<String, dynamic>> updateOrderStatus(
-    int orderId,
-    String status,
-  ) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$_baseUrl/orders/$orderId/status'),
-        headers: await _getHeaders(),
-        body: json.encode({'status': status}),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to update order status: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error updating order status: $e');
-    }
-  }
-
-  Future<Map<String, dynamic>> getOrderDetails(int orderId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/orders/$orderId'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to load order details: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error fetching order details: $e');
-    }
-  }
-
   // ==================== ANALYTICS ====================
   Future<Map<String, dynamic>> getAnalytics() async {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/analytics'),
         headers: await _getHeaders(),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -542,34 +478,6 @@ class AdminService {
       }
     } catch (e) {
       throw Exception('Error fetching analytics: $e');
-    }
-  }
-
-  Future<Map<String, dynamic>> getRevenueReport({
-    String? startDate,
-    String? endDate,
-  }) async {
-    try {
-      final params = <String, String>{};
-      if (startDate != null && startDate.isNotEmpty) params['startDate'] = startDate;
-      if (endDate != null && endDate.isNotEmpty) params['endDate'] = endDate;
-
-      final queryString = params.entries
-          .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-          .join('&');
-
-      final response = await http.get(
-        Uri.parse('$_baseUrl/reports/revenue?$queryString'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to load revenue report: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error fetching revenue report: $e');
     }
   }
 
@@ -595,7 +503,7 @@ class AdminService {
       final response = await http.get(
         Uri.parse('$_baseUrl/disputes?$queryString'),
         headers: await _getHeaders(),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -623,7 +531,7 @@ class AdminService {
           'description': description,
           'priority': priority,
         }),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
@@ -650,7 +558,7 @@ class AdminService {
         Uri.parse('$_baseUrl/disputes/$disputeId/status'),
         headers: await _getHeaders(),
         body: json.encode(body),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -659,101 +567,6 @@ class AdminService {
       }
     } catch (e) {
       throw Exception('Error updating dispute status: $e');
-    }
-  }
-
-  Future<Map<String, dynamic>> getDisputeDetails(int disputeId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/disputes/$disputeId'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to load dispute details: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error fetching dispute details: $e');
-    }
-  }
-
-  // ==================== BULK ACTIONS ====================
-  Future<Map<String, dynamic>> bulkDeleteUsers(List<int> userIds) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/users/bulk-delete'),
-        headers: await _getHeaders(),
-        body: json.encode({'userIds': userIds}),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to bulk delete users: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error bulk deleting users: $e');
-    }
-  }
-
-  Future<Map<String, dynamic>> bulkVerifyPharmacies(List<int> pharmacyIds) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/pharmacies/bulk-verify'),
-        headers: await _getHeaders(),
-        body: json.encode({'pharmacyIds': pharmacyIds, 'isVerified': true}),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to bulk verify pharmacies: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error bulk verifying pharmacies: $e');
-    }
-  }
-
-  // ==================== EXPORT REPORTS ====================
-  Future<http.Response> exportUsersReport({String? role, String format = 'csv'}) async {
-    try {
-      final params = <String, String>{'format': format};
-      if (role != null && role.isNotEmpty) params['role'] = role;
-
-      final queryString = params.entries
-          .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-          .join('&');
-
-      final response = await http.get(
-        Uri.parse('$_baseUrl/export/users?$queryString'),
-        headers: await _getHeaders(),
-      );
-
-      return response;
-    } catch (e) {
-      throw Exception('Error exporting users report: $e');
-    }
-  }
-
-  Future<http.Response> exportOrdersReport({String? status, String format = 'csv'}) async {
-    try {
-      final params = <String, String>{'format': format};
-      if (status != null && status.isNotEmpty) params['status'] = status;
-
-      final queryString = params.entries
-          .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-          .join('&');
-
-      final response = await http.get(
-        Uri.parse('$_baseUrl/export/orders?$queryString'),
-        headers: await _getHeaders(),
-      );
-
-      return response;
-    } catch (e) {
-      throw Exception('Error exporting orders report: $e');
     }
   }
 }

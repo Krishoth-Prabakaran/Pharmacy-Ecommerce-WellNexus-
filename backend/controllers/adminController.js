@@ -94,7 +94,7 @@ exports.getAllDoctors = async (req, res) => {
   }
 };
 
-// ==================== GET ALL PHARMACIES (WORKING VERSION) ====================
+// ==================== GET ALL PHARMACIES ====================
 exports.getAllPharmacies = async (req, res) => {
   console.log("🏪 Fetching all pharmacies...");
 
@@ -104,7 +104,6 @@ exports.getAllPharmacies = async (req, res) => {
     let params = [];
     let paramCount = 1;
 
-    // Build WHERE clause for search
     let whereClause = '';
     if (search && search.trim() !== '') {
       whereClause = `WHERE p.pharmacy_name ILIKE $${paramCount} OR pb.address ILIKE $${paramCount} OR pb.phone ILIKE $${paramCount}`;
@@ -112,7 +111,6 @@ exports.getAllPharmacies = async (req, res) => {
       paramCount++;
     }
 
-    // Get pharmacies with their main branch info
     const pharmaciesQuery = `
       SELECT 
         p.pharmacy_id, 
@@ -143,7 +141,6 @@ exports.getAllPharmacies = async (req, res) => {
 
     const pharmaciesResult = await pool.query(pharmaciesQuery, [...params, parseInt(limit), offset]);
 
-    // Get total count
     const countQuery = `
       SELECT COUNT(DISTINCT p.pharmacy_id) as total 
       FROM pharmacies p
@@ -152,14 +149,13 @@ exports.getAllPharmacies = async (req, res) => {
     `;
     const countResult = await pool.query(countQuery, params);
 
-    // Transform the data to match frontend expectations
     const pharmacies = pharmaciesResult.rows.map(row => {
       return {
         pharmacy_id: row.pharmacy_id,
         pharmacy_name: row.pharmacy_name,
-        name: row.pharmacy_name,  // Frontend expects 'name'
+        name: row.pharmacy_name,
         address: row.address || 'Address not provided',
-        location: row.address || 'Location not provided',  // Frontend expects 'location'
+        location: row.address || 'Location not provided',
         phone: row.phone || 'Phone not available',
         email: row.email || 'Email not available',
         username: row.username || 'N/A',
@@ -492,6 +488,8 @@ exports.updatePrescriptionStatus = async (req, res) => {
   }
 };
 
+// In controllers/adminController.js, update the verifyDoctor and verifyPharmacy methods:
+
 // ==================== VERIFY DOCTOR ====================
 exports.verifyDoctor = async (req, res) => {
   const { doctorId } = req.params;
@@ -499,6 +497,7 @@ exports.verifyDoctor = async (req, res) => {
   const adminId = req.user.user_id;
 
   console.log(`✅ Verifying doctor ${doctorId}: ${isVerified ? 'verified' : 'unverified'}`);
+  console.log(`   Admin ID: ${adminId} (${typeof adminId})`);
 
   try {
     const result = await AdminModel.verifyDoctor(doctorId, isVerified, adminId, notes);
@@ -520,6 +519,7 @@ exports.verifyPharmacy = async (req, res) => {
   const adminId = req.user.user_id;
 
   console.log(`🏪 Verifying pharmacy ${pharmacyId}: ${isVerified ? 'verified' : 'unverified'}`);
+  console.log(`   Admin ID: ${adminId} (${typeof adminId})`);
 
   try {
     const result = await AdminModel.verifyPharmacy(pharmacyId, isVerified, adminId, notes);
@@ -655,6 +655,13 @@ exports.adminResetPassword = async (req, res) => {
   const { userId } = req.params;
   const { newPassword } = req.body;
   console.log(`🔐 Admin resetting password for user ${userId}`);
+
+  if (!newPassword || newPassword.length < 8) {
+    return res.status(400).json({
+      success: false,
+      message: "Password must be at least 8 characters",
+    });
+  }
 
   try {
     const bcrypt = require("bcrypt");

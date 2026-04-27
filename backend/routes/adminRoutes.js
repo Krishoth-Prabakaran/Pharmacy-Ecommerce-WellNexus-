@@ -4,9 +4,7 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 
 // ==================== ADMIN AUTHENTICATION MIDDLEWARE ====================
-// This middleware checks if the user is an admin
 const adminAuth = (req, res, next) => {
-  // Get token from header
   const token = req.headers.authorization?.split(' ')[1];
   
   if (!token) {
@@ -23,7 +21,6 @@ const adminAuth = (req, res, next) => {
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Check if user is admin
     if (decoded.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -31,7 +28,6 @@ const adminAuth = (req, res, next) => {
       });
     }
 
-    // Attach user info to request
     req.user = decoded;
     next();
   } catch (error) {
@@ -51,15 +47,19 @@ router.get('/stats', adminAuth, adminController.getDashboardStats);
 router.get('/users', adminAuth, adminController.getAllUsers);
 router.put('/users/:userId/role', adminAuth, adminController.updateUserRole);
 router.delete('/users/:userId', adminAuth, adminController.deleteUser);
+router.put('/users/:userId/deactivate', adminAuth, adminController.deactivateUser);
+router.post('/users/:userId/reset-password', adminAuth, adminController.adminResetPassword);
 
 // Patient Management
 router.get('/patients', adminAuth, adminController.getAllPatients);
 
 // Doctor Management
 router.get('/doctors', adminAuth, adminController.getAllDoctors);
+router.put('/doctors/:doctorId/verify', adminAuth, adminController.verifyDoctor);
 
 // Pharmacy Management
 router.get('/pharmacies', adminAuth, adminController.getAllPharmacies);
+router.put('/pharmacies/:pharmacyId/verify', adminAuth, adminController.verifyPharmacy);
 
 // Appointment Management
 router.get('/appointments', adminAuth, adminController.getAllAppointments);
@@ -69,9 +69,8 @@ router.put('/appointments/:appointmentId/status', adminAuth, adminController.upd
 router.get('/prescriptions', adminAuth, adminController.getAllPrescriptions);
 router.put('/prescriptions/:prescriptionId/status', adminAuth, adminController.updatePrescriptionStatus);
 
-// Professional Verification
-router.put('/doctors/:doctorId/verify', adminAuth, adminController.verifyDoctor);
-router.put('/pharmacies/:pharmacyId/verify', adminAuth, adminController.verifyPharmacy);
+// Order Management
+router.get('/orders', adminAuth, adminController.getAllOrders);
 
 // Analytics
 router.get('/analytics', adminAuth, adminController.getAnalytics);
@@ -82,12 +81,3 @@ router.post('/disputes', adminAuth, adminController.createDispute);
 router.put('/disputes/:disputeId/status', adminAuth, adminController.updateDisputeStatus);
 
 module.exports = router;
-
-// ==================== ADD THESE ROUTES ====================
-
-// User Management - Additional
-router.put('/users/:userId/deactivate', adminAuth, adminController.deactivateUser);
-router.post('/users/:userId/reset-password', adminAuth, adminController.adminResetPassword);
-
-// Order Management
-router.get('/orders', adminAuth, adminController.getAllOrders);
