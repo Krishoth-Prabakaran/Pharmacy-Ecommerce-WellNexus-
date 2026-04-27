@@ -82,3 +82,12 @@ router.post('/disputes', adminAuth, adminController.createDispute);
 router.put('/disputes/:disputeId/status', adminAuth, adminController.updateDisputeStatus);
 
 module.exports = router;
+
+// ==================== ADD THESE ROUTES ====================
+
+// User Management - Additional
+router.put('/users/:userId/deactivate', adminAuth, adminController.deactivateUser);
+router.post('/users/:userId/reset-password', adminAuth, adminController.adminResetPassword);
+
+// Order Management
+router.get('/orders', adminAuth, adminController.getAllOrders);

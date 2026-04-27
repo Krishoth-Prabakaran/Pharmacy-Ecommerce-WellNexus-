@@ -94,20 +94,159 @@ exports.getAllDoctors = async (req, res) => {
   }
 };
 
+// ==================== GET ALL PHARMACIES (WORKING VERSION) ====================
+exports.getAllPharmacies = async (req, res) => {
+  console.log("🏪 Fetching all pharmacies...");
+
+  try {
+    const { page = 1, limit = 20, search = null } = req.query;
+    const offset = (page - 1) * limit;
+    let params = [];
+    let paramCount = 1;
+
+    // Build WHERE clause for search
+    let whereClause = '';
+    if (search && search.trim() !== '') {
+      whereClause = `WHERE p.pharmacy_name ILIKE $${paramCount} OR pb.address ILIKE $${paramCount} OR pb.phone ILIKE $${paramCount}`;
+      params.push(`%${search}%`);
+      paramCount++;
+    }
+
+    // Get pharmacies with their main branch info
+    const pharmaciesQuery = `
+      SELECT 
+        p.pharmacy_id, 
+        p.pharmacy_name, 
+        p.is_verified, 
+        p.verified_at, 
+        p.verification_notes,
+        u.user_id, 
+        u.email, 
+        u.username, 
+        u.email_verified,
+        pb.branch_id,
+        pb.branch_name,
+        pb.address,
+        pb.phone,
+        pb.latitude,
+        pb.longitude,
+        pb.open_time,
+        pb.close_time,
+        pb.is_main_branch
+      FROM pharmacies p
+      LEFT JOIN users u ON p.user_id = u.user_id
+      LEFT JOIN pharmacy_branches pb ON p.pharmacy_id = pb.pharmacy_id
+      ${whereClause}
+      ORDER BY p.pharmacy_id DESC
+      LIMIT $${paramCount} OFFSET $${paramCount + 1}
+    `;
+
+    const pharmaciesResult = await pool.query(pharmaciesQuery, [...params, parseInt(limit), offset]);
+
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(DISTINCT p.pharmacy_id) as total 
+      FROM pharmacies p
+      LEFT JOIN pharmacy_branches pb ON p.pharmacy_id = pb.pharmacy_id
+      ${whereClause}
+    `;
+    const countResult = await pool.query(countQuery, params);
+
+    // Transform the data to match frontend expectations
+    const pharmacies = pharmaciesResult.rows.map(row => {
+      return {
+        pharmacy_id: row.pharmacy_id,
+        pharmacy_name: row.pharmacy_name,
+        name: row.pharmacy_name,  // Frontend expects 'name'
+        address: row.address || 'Address not provided',
+        location: row.address || 'Location not provided',  // Frontend expects 'location'
+        phone: row.phone || 'Phone not available',
+        email: row.email || 'Email not available',
+        username: row.username || 'N/A',
+        is_verified: row.is_verified || false,
+        verified_at: row.verified_at,
+        verification_notes: row.verification_notes,
+        open_time: row.open_time,
+        close_time: row.close_time,
+        latitude: row.latitude ? parseFloat(row.latitude) : null,
+        longitude: row.longitude ? parseFloat(row.longitude) : null,
+        is_main_branch: row.is_main_branch || false,
+        branch_name: row.branch_name || 'Main Branch',
+        branch_id: row.branch_id
+      };
+    });
+
+    console.log(`✅ Found ${pharmacies.length} pharmacies`);
+
+    res.json({
+      success: true,
+      pharmacies: pharmacies,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil((countResult.rows[0]?.total || 0) / limit),
+        totalPharmacies: parseInt(countResult.rows[0]?.total || 0),
+        hasNext: page * limit < (countResult.rows[0]?.total || 0),
+        hasPrev: page > 1,
+      },
+    });
+  } catch (err) {
+    console.error("❌ Error fetching pharmacies:", err.message);
+    console.error("Stack:", err.stack);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pharmacies",
+      error: err.message,
+    });
+  }
+};
+
 // ==================== GET ALL APPOINTMENTS ====================
 exports.getAllAppointments = async (req, res) => {
   console.log("📅 Fetching all appointments...");
 
   try {
-    const { page, limit, status } = req.query;
-    const options = {
-      page: parseInt(page) || 1,
-      limit: parseInt(limit) || 20,
-      status: status || null,
-    };
+    const { page = 1, limit = 20, status = null } = req.query;
+    const offset = (page - 1) * limit;
+    let params = [];
+    let paramCount = 1;
 
-    const result = await AdminModel.getAllAppointments(options);
-    res.json(result);
+    let whereClause = '';
+    if (status) {
+      whereClause = `WHERE a.status = $${paramCount}`;
+      params.push(status);
+      paramCount++;
+    }
+
+    const [appointmentsResult, countResult] = await Promise.all([
+      pool.query(
+        `SELECT a.*, 
+                p.first_name as patient_first_name, p.last_name as patient_last_name,
+                d.first_name as doctor_first_name, d.last_name as doctor_last_name,
+                u.username as patient_username, u2.username as doctor_username
+         FROM appointments a
+         LEFT JOIN patients p ON a.patient_id = p.user_id
+         LEFT JOIN doctors d ON a.doctor_id = d.user_id
+         LEFT JOIN users u ON p.user_id = u.user_id
+         LEFT JOIN users u2 ON d.user_id = u2.user_id
+         ${whereClause}
+         ORDER BY a.appointment_date DESC, a.appointment_time DESC
+         LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
+        [...params, limit, offset]
+      ),
+      pool.query(`SELECT COUNT(*) as total FROM appointments a ${whereClause}`, params),
+    ]);
+
+    res.json({
+      success: true,
+      appointments: appointmentsResult.rows,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(countResult.rows[0].total / limit),
+        totalAppointments: countResult.rows[0].total,
+        hasNext: page * limit < countResult.rows[0].total,
+        hasPrev: page > 1,
+      },
+    });
   } catch (err) {
     console.error("❌ Error fetching appointments:", err.message);
     res.status(500).json({
@@ -123,15 +262,45 @@ exports.getAllPrescriptions = async (req, res) => {
   console.log("💊 Fetching all prescriptions...");
 
   try {
-    const { page, limit, status } = req.query;
-    const options = {
-      page: parseInt(page) || 1,
-      limit: parseInt(limit) || 20,
-      status: status || null,
-    };
+    const { page = 1, limit = 20, status = null } = req.query;
+    const offset = (page - 1) * limit;
+    let params = [];
+    let paramCount = 1;
 
-    const result = await AdminModel.getAllPrescriptions(options);
-    res.json(result);
+    let whereClause = '';
+    if (status) {
+      whereClause = `WHERE p.status = $${paramCount}`;
+      params.push(status);
+      paramCount++;
+    }
+
+    const [prescriptionsResult, countResult] = await Promise.all([
+      pool.query(
+        `SELECT p.*, 
+                pt.first_name as patient_first_name, pt.last_name as patient_last_name,
+                d.first_name as doctor_first_name, d.last_name as doctor_last_name
+         FROM prescriptions p
+         LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+         LEFT JOIN doctors d ON p.doctor_license = d.doctor_id
+         ${whereClause}
+         ORDER BY p.prescription_date DESC
+         LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
+        [...params, limit, offset]
+      ),
+      pool.query(`SELECT COUNT(*) as total FROM prescriptions p ${whereClause}`, params),
+    ]);
+
+    res.json({
+      success: true,
+      prescriptions: prescriptionsResult.rows,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(countResult.rows[0].total / limit),
+        totalPrescriptions: countResult.rows[0].total,
+        hasNext: page * limit < countResult.rows[0].total,
+        hasPrev: page > 1,
+      },
+    });
   } catch (err) {
     console.error("❌ Error fetching prescriptions:", err.message);
     res.status(500).json({
@@ -167,7 +336,6 @@ exports.updateUserRole = async (req, res) => {
   console.log(`🔄 Updating role for user ID: ${userId} to: ${role}`);
 
   try {
-    // Validate role
     const validRoles = ['patient', 'doctor', 'pharmacist', 'admin'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({
@@ -183,55 +351,6 @@ exports.updateUserRole = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update user role",
-      error: err.message,
-    });
-  }
-};
-
-// ==================== GET PHARMACIES ====================
-exports.getAllPharmacies = async (req, res) => {
-  console.log("🏪 Fetching all pharmacies...");
-
-  try {
-    const { page = 1, limit = 20, search = null } = req.query;
-    const offset = (page - 1) * limit;
-    let params = [];
-    let paramCount = 1;
-
-    let whereClause = '';
-    if (search) {
-      whereClause = `WHERE name ILIKE $${paramCount} OR location ILIKE $${paramCount} OR phone ILIKE $${paramCount}`;
-      params.push(`%${search}%`);
-      paramCount++;
-    }
-
-    const [pharmaciesResult, countResult] = await Promise.all([
-      pool.query(
-        `SELECT * FROM pharmacies 
-         ${whereClause}
-         ORDER BY pharmacy_id DESC 
-         LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
-        [...params, parseInt(limit), offset]
-      ),
-      pool.query(`SELECT COUNT(*) as total FROM pharmacies ${whereClause}`, params),
-    ]);
-
-    res.json({
-      success: true,
-      pharmacies: pharmaciesResult.rows,
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(countResult.rows[0].total / limit),
-        totalPharmacies: countResult.rows[0].total,
-        hasNext: page * limit < countResult.rows[0].total,
-        hasPrev: page > 1,
-      },
-    });
-  } catch (err) {
-    console.error("❌ Error fetching pharmacies:", err.message);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch pharmacies",
       error: err.message,
     });
   }
@@ -258,14 +377,14 @@ exports.getAllOrders = async (req, res) => {
       pool.query(
         `SELECT o.*, 
                 p.first_name as patient_first_name, p.last_name as patient_last_name,
-                ph.name as pharmacy_name
+                ph.pharmacy_name
          FROM orders o
          LEFT JOIN patients p ON o.patient_id = p.patient_id
          LEFT JOIN pharmacies ph ON o.pharmacy_id = ph.pharmacy_id
          ${whereClause}
          ORDER BY o.created_at DESC
          LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
-        [...params, parseInt(limit), offset]
+        [...params, limit, offset]
       ),
       pool.query(`SELECT COUNT(*) as total FROM orders o ${whereClause}`, params),
     ]);
@@ -507,6 +626,48 @@ exports.updateDisputeStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update dispute status",
+      error: err.message,
+    });
+  }
+};
+
+// ==================== DEACTIVATE/ACTIVATE USER ====================
+exports.deactivateUser = async (req, res) => {
+  const { userId } = req.params;
+  const { isActive } = req.body;
+  console.log(`🔘 Setting user ${userId} active status to: ${isActive}`);
+
+  try {
+    const result = await AdminModel.setUserActiveStatus(userId, isActive);
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Error updating user status:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update user status",
+      error: err.message,
+    });
+  }
+};
+
+// ==================== RESET USER PASSWORD (ADMIN) ====================
+exports.adminResetPassword = async (req, res) => {
+  const { userId } = req.params;
+  const { newPassword } = req.body;
+  console.log(`🔐 Admin resetting password for user ${userId}`);
+
+  try {
+    const bcrypt = require("bcrypt");
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    const result = await AdminModel.resetUserPassword(userId, hashedPassword);
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Error resetting password:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to reset password",
       error: err.message,
     });
   }

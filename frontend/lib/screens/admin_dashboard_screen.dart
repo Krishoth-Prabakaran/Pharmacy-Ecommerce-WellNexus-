@@ -1520,7 +1520,7 @@ class _DoctorsManagementViewState extends State<DoctorsManagementView> {
   }
 }
 
-// ==================== PHARMACIES MANAGEMENT VIEW ====================
+// ==================== PHARMACIES MANAGEMENT VIEW (WORKING VERSION) ====================
 class PharmaciesManagementView extends StatefulWidget {
   const PharmaciesManagementView({super.key});
 
@@ -1549,13 +1549,22 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
         page: _currentPage,
         search: _searchController.text.isEmpty ? null : _searchController.text,
       );
+      
+      print('📦 API Response: $result'); // Debug log
+      
       setState(() {
         _pharmacies = result['pharmacies'] ?? [];
-        _totalPages = result['pagination']['totalPages'] ?? 1;
+        _totalPages = result['pagination']?['totalPages'] ?? 1;
         _isLoading = false;
       });
     } catch (e) {
+      print('❌ Error loading pharmacies: $e');
       setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading pharmacies: $e')),
+        );
+      }
     }
   }
 
@@ -1574,95 +1583,216 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
         ),
         const SizedBox(height: 16),
 
-        TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Search pharmacies...',
-            prefixIcon: const Icon(Icons.search),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+        // Search Bar
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search pharmacies by name, address, or phone...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            _loadPharmacies();
+                          },
+                        )
+                      : null,
+                ),
+                onSubmitted: (_) => _loadPharmacies(),
+              ),
             ),
-          ),
-          onSubmitted: (_) => _loadPharmacies(),
+            const SizedBox(width: 12),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadPharmacies,
+              tooltip: 'Refresh',
+            ),
+          ],
         ),
         const SizedBox(height: 16),
 
+        // Pharmacies List
         if (_isLoading)
-          const Center(child: CircularProgressIndicator())
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            ),
+          )
         else if (_pharmacies.isEmpty)
-          const Center(child: Text('No pharmacies found'))
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  Icon(Icons.store, size: 64, color: Colors.grey),  // Fixed: Changed from Icons.store_off to Icons.store
+                  SizedBox(height: 16),
+                  Text(
+                    'No pharmacies found',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          )
         else
-          ListView.separated(
+          ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _pharmacies.length,
-            separatorBuilder: (context, index) => const Divider(),
             itemBuilder: (context, index) {
               final pharmacy = _pharmacies[index];
-              final isVerified = pharmacy['is_verified'] ?? false;
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: isVerified ? Colors.green : Colors.orange,
-                  child: Icon(
-                    isVerified ? Icons.verified : Icons.pending,
-                    color: Colors.white,
-                  ),
+              final isVerified = pharmacy['is_verified'] == true;
+              final pharmacyName = pharmacy['name'] ?? pharmacy['pharmacy_name'] ?? 'Unknown Pharmacy';
+              final pharmacyLocation = pharmacy['location'] ?? pharmacy['address'] ?? 'Address not provided';
+              final pharmacyPhone = pharmacy['phone'] ?? 'Phone not available';
+              final pharmacyEmail = pharmacy['email'] ?? 'Email not available';
+              
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                title: Row(
-                  children: [
-                    Text(pharmacy['name'] ?? 'Unknown'),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isVerified ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: isVerified ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.local_pharmacy,
+                              color: isVerified ? Colors.green : Colors.orange,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  pharmacyName,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF1E293B),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  pharmacyLocation,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isVerified ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              isVerified ? 'Verified' : 'Unverified',
+                              style: TextStyle(
+                                color: isVerified ? Colors.green : Colors.orange,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        isVerified ? 'Verified' : 'Unverified',
-                        style: TextStyle(
-                          color: isVerified ? Colors.green : Colors.orange,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Icon(Icons.phone, size: 14, color: Color(0xFF64748B)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              pharmacyPhone,
+                              style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.email, size: 14, color: Color(0xFF64748B)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              pharmacyEmail,
+                              style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (pharmacy['verification_notes'] != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.note, size: 14, color: Color(0xFF64748B)),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Notes: ${pharmacy['verification_notes']}',
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                            ),
+                          ],
                         ),
+                      ],
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () => _showVerificationDialog(
+                              pharmacy['pharmacy_id'], 
+                              !isVerified,
+                              pharmacyName
+                            ),
+                            icon: Icon(isVerified ? Icons.verified_rounded : Icons.verified_outlined, size: 18),
+                            label: Text(isVerified ? 'Unverify' : 'Verify'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isVerified ? Colors.red : Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(pharmacy['location'] ?? ''),
-                    if (pharmacy['verification_notes'] != null)
-                      Text(
-                        'Notes: ${pharmacy['verification_notes']}',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                  ],
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      pharmacy['phone'] ?? '',
-                      style: const TextStyle(color: Color(0xFF64748B)),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () => _showVerificationDialog(pharmacy['pharmacy_id'], !isVerified),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isVerified ? Colors.red : Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      child: Text(isVerified ? 'Unverify' : 'Verify'),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
           ),
 
+        // Pagination
         if (!_isLoading && _totalPages > 1)
           Padding(
             padding: const EdgeInsets.only(top: 16),
@@ -1673,7 +1803,9 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
                   icon: const Icon(Icons.chevron_left),
                   onPressed: _currentPage > 1
                       ? () {
-                          setState(() => _currentPage--);
+                          setState(() {
+                            _currentPage--;
+                          });
                           _loadPharmacies();
                         }
                       : null,
@@ -1683,7 +1815,9 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
                   icon: const Icon(Icons.chevron_right),
                   onPressed: _currentPage < _totalPages
                       ? () {
-                          setState(() => _currentPage++);
+                          setState(() {
+                            _currentPage++;
+                          });
                           _loadPharmacies();
                         }
                       : null,
@@ -1695,7 +1829,7 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
     );
   }
 
-  void _showVerificationDialog(int pharmacyId, bool isVerified) {
+  void _showVerificationDialog(int pharmacyId, bool isVerified, String pharmacyName) {
     final TextEditingController notesController = TextEditingController();
 
     showDialog(
@@ -1705,7 +1839,7 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Are you sure you want to ${isVerified ? 'verify' : 'unverify'} this pharmacy?'),
+            Text('Are you sure you want to ${isVerified ? 'verify' : 'unverify'} "$pharmacyName"?'),
             const SizedBox(height: 16),
             TextField(
               controller: notesController,
@@ -1739,13 +1873,14 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Pharmacy ${isVerified ? 'verified' : 'unverified'} successfully'),
+                      backgroundColor: isVerified ? Colors.green : Colors.orange,
                     ),
                   );
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
+                    SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
                   );
                 }
               }
@@ -1756,9 +1891,7 @@ class _PharmaciesManagementViewState extends State<PharmaciesManagementView> {
       ),
     );
   }
-}
-
-// ==================== ORDERS MANAGEMENT VIEW ====================
+}// ==================== ORDERS MANAGEMENT VIEW ====================
 class OrdersManagementView extends StatefulWidget {
   const OrdersManagementView({super.key});
 
